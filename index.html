@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>AI Passport Photo Maker</title>
 <link rel="manifest" href="manifest.json">
-<!-- Correct way to handle PWA theme colors for light/dark mode -->
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -41,6 +40,10 @@
     background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     min-height: 100dvh; 
+    /* App-like behavior: Prevent all text selection and context menus globally */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
 
   /* ── App Container (Centralized Mobile Layout) ────────────── */
@@ -98,9 +101,6 @@
     display: block; width: 100%; height: auto; aspect-ratio: 1 / 1;
     cursor: pointer; 
     touch-action: none; 
-    -webkit-touch-callout: none; /* Prevent iOS popup */
-    -webkit-user-select: none;   /* Prevent selection */
-    user-select: none;
   }
   #canvas.active-drag { cursor: grabbing; }
 
@@ -111,10 +111,6 @@
     color: #1f2937;
     backdrop-filter: blur(4px); padding: 0; transition: 0.15s;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    /* Prevent mobile tap actions */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
     touch-action: none;
   }
   .icon-btn:hover { background: #ffffff; transform: scale(1.05); }
@@ -128,15 +124,14 @@
     border: 1px solid var(--border); 
     display: none; align-items: center; justify-content: center; 
     cursor: pointer; transition: 0.15s;
-    /* Prevent mobile tap actions */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
     touch-action: none;
   }
   .dir-btn:hover { color: var(--text); background: var(--canvas-bg); }
   .dir-btn:active { background: var(--border); }
-  .dir-btn svg { width: 16px; height: 16px; }
+  
+  /* Prevent browser from targeting the inner SVGs directly for touch interactions */
+  .dir-btn svg, .icon-btn svg { width: 16px; height: 16px; pointer-events: none; }
+  .icon-btn svg { width: 20px; height: 20px; }
   
   .dir-btn.up { top: -24px; left: 50%; transform: translateX(-50%); width: 64px; height: 24px; border-radius: 6px 6px 0 0; border-bottom: none; }
   .dir-btn.down { bottom: -24px; left: 50%; transform: translateX(-50%); width: 64px; height: 24px; border-radius: 0 0 6px 6px; border-top: none;}
@@ -411,6 +406,9 @@ let taskTotalBytes = 0, taskDoneBytes = 0;
 let imglyTotalBytes = 22 * 1024 * 1024, imglyDoneBytes = 0;
 let taskArrayBuffer = null;
 let toastTimeout = null;
+
+// Explicitly block right-click/long-press context menus across the D-Pad 
+dpadWrapper.addEventListener('contextmenu', e => e.preventDefault());
 
 // ── Toast Notification ───────────────────────────────────────────────────────
 function showToast() {
