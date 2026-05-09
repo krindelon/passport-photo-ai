@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Modern Blue Gradient matching your CSS theme -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Smooth App Icon Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  
+  <!-- Passport Photo Frame -->
+  <rect x="128" y="100" width="256" height="312" rx="24" fill="#ffffff" />
+  
+  <!-- Minimalist Human Silhouette -->
+  <circle cx="256" cy="220" r="64" fill="#9ca3af" />
+  <path d="M152 380 c 0 -60 48 -96 104 -96 c 56 0 104 36 104 96 v 32 h -208 v -32 z" fill="#9ca3af" />
+  
+  <!-- Crop Corner Markers (Top Left) -->
+  <path d="M80 140 v -60 h 60" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Crop Corner Markers (Bottom Right) -->
+  <path d="M432 372 v 60 h -60" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- AI Sparkle 1 -->
+  <path d="M380 140 l 12 -28 l 28 -12 l -28 -12 l -12 -28 l -12 28 l -28 12 l 28 12 z" fill="#fbbf24" />
+  
+  <!-- AI Sparkle 2 -->
+  <path d="M100 340 l 8 -16 l 16 -8 l -16 -8 l -8 -16 l -8 16 l -16 8 l 16 8 z" fill="#fcd34d" />
+</svg>

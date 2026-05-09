@@ -1,0 +1,17 @@
+{
+  "name": "AI Passport Photo Maker",
+  "short_name": "Passport AI",
+  "description": "100% private, offline passport photo cropper with automatic biometric compliance.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#2563eb",
+  "icons":[
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>AI Passport Photo Maker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<style>
+  /* ── Theme ────────────────────────────────────────────────── */
+  :root {
+    --bg:          #f0f2f5;
+    --surface:     #ffffff;
+    --border:      #e5e7eb;
+    --text:        #1f2937;
+    --text-muted:  #6b7280;
+    --accent:      #2563eb;
+    --ok:          #10b981;
+    --bad:         #ef4444;
+    --canvas-bg:   #ffffff;
+    --glass-bg:    rgba(255, 255, 255, 0.85);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:         #111827;
+      --surface:    #1f2937;
+      --border:     #374151;
+      --text:       #f9fafb;
+      --text-muted: #9ca3af;
+      --canvas-bg:  #ffffff; /* Canvas stays white for the passport photo */
+      --glass-bg:   rgba(31, 41, 55, 0.85);
+    }
+  }
+
+  /* ── Reset & base ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100dvh; display: flex; flex-direction: column;
+  }
+
+  /* ── Headers & Privacy ────────────────────────────────────── */
+  .header-area { text-align: center; padding: 30px 15px 15px; }
+  .header-area h1 { margin: 0 0 10px 0; font-size: 28px; }
+  .privacy-badge {
+    display: inline-block; background: rgba(16, 185, 129, 0.1); color: var(--ok);
+    padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 12px;
+  }
+  .feature-list {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+    font-size: 13px; color: var(--text-muted); font-weight: 500;
+  }
+  .feature-list span::after { content: "•"; margin-left: 8px; color: var(--border); }
+  .feature-list span:last-child::after { content: ""; }
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  .container {
+    display: flex; flex-wrap: wrap; max-width: 1000px;
+    margin: 0 auto 40px; gap: 30px; padding: 0 15px;
+    justify-content: center; align-items: flex-start; flex: 1;
+  }
+  
+  .panel {
+    background: var(--surface); padding: 25px;
+    border-radius: 16px; border: 1px solid var(--border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    flex: 1; min-width: 320px; max-width: 450px;
+  }
+
+  .topbar { display: flex; gap: 10px; margin-bottom: 25px; }
+  input[type="file"] { display: none; }
+
+  /* ── Buttons ──────────────────────────────────────────────── */
+  button {
+    flex: 1; padding: 12px 16px; font-size: 15px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    border-radius: 8px; cursor: pointer; transition: 0.15s; user-select: none;
+  }
+  button:hover:not(:disabled) { filter: brightness(0.95); }
+  button:active:not(:disabled) { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  .primary { background: var(--accent); color: white; border: none; }
+  .primary:hover:not(:disabled) { background: #1d4ed8; filter: none; }
+  
+  .dl-btn { 
+    background: var(--ok); color: white; border: none; 
+    padding: 14px; width: 100%; margin-top: 10px; font-size: 15px;
+  }
+  .dl-btn:hover:not(:disabled) { background: #059669; filter: none; }
+
+  /* ── Canvas ───────────────────────────────────────────────── */
+  #canvas {
+    display: block; width: 100%; max-width: 400px; height: auto;
+    aspect-ratio: 1 / 1; margin: 0 auto;
+    background: var(--canvas-bg); border: 1px solid var(--border); border-radius: 4px;
+    cursor: grab; touch-action: none; /* Prevents mobile scrolling while dragging */
+  }
+  #canvas:active { cursor: grabbing; }
+
+  /* ── Controls ───────────────────────────────────────── */
+  .ctrl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .ctrl-label { font-size: 14px; font-weight: 600; min-width: 80px; }
+  input[type="range"] { flex: 1; accent-color: var(--accent); }
+  #headVal { font-size: 14px; font-weight: 500; min-width: 40px; text-align: right; }
+
+  .checkbox-row {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    margin-top: -5px; margin-bottom: 20px;
+  }
+  .checkbox-row input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer;}
+  .checkbox-row label { font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none; }
+
+  /* ── Nudge cross ──────────────────────────────────────────── */
+  .nudge-cross {
+    display: grid; grid-template-columns: repeat(3, 45px); grid-template-rows: repeat(3, 45px);
+    gap: 5px; justify-content: center; margin-bottom: 10px;
+  }
+  .nudge-cross button { padding: 0; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  .nudge-cross .blank { visibility: hidden; }
+
+  /* ── Feedback & Metrics ─────────────────────────── */
+  .feedback { padding-top: 20px; border-top: 1px solid var(--border); }
+  .feedback h3 { margin: 0 0 10px 0; font-size: 15px; }
+  .feedback ul { list-style: none; padding: 0; margin: 0 0 15px 0; font-size: 14px; font-weight: 500;}
+  .feedback li { margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px;}
+  .feedback li.ok { color: var(--ok); }
+  .feedback li.bad { color: var(--bad); }
+  .feedback li.warn { color: #f59e0b; }
+  
+  .metrics-list { list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted); }
+  .metrics-list li { margin-bottom: 5px; }
+
+  #overallStatus { font-weight: 700; font-size: 16px; margin: 15px 0; text-align: center;}
+
+  /* ── Footer ───────────────────────────────────────── */
+  .footer {
+    text-align: center; padding: 20px; font-size: 13px; color: var(--text-muted);
+    border-top: 1px solid var(--border); margin-top: auto;
+  }
+
+  /* ── Glassmorphism Initial Loader ────────────────────────────────── */
+  #initLoader {
+    position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--bg); z-index: 1000; transition: opacity 0.4s ease;
+  }
+  .init-box {
+    background: var(--surface); padding: 40px; border-radius: 16px; border: 1px solid var(--border);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); text-align: center; width: 90%; max-width: 400px;
+  }
+  .init-box h2 { margin: 0 0 10px 0; font-size: 20px; }
+  .init-box p { font-size: 14px; color: var(--text-muted); margin-bottom: 25px; line-height: 1.5;}
+  .progress-bg { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 15px;}
+  .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease; }
+  #initMbText { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  /* ── Glassmorphism Processing Loader ───────────────────────────── */
+  #procLoader {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 999;
+  }
+  #procLoader.show { display: flex; }
+  .proc-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); width: 90%; max-width: 320px;
+  }
+  .proc-box h3 { margin: 0 0 20px 0; text-align: center; font-size: 18px; }
+  .proc-steps { list-style: none; padding: 0; margin: 0; font-size: 14px; font-weight: 500;}
+  .proc-steps li { margin-bottom: 15px; display: flex; align-items: center; gap: 12px; color: var(--text-muted); transition: 0.3s; }
+  .proc-steps li.active { color: var(--text); }
+  .proc-steps li.done { color: var(--ok); }
+  .step-icon { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px;}
+  .proc-steps li.active .step-icon { border-color: var(--accent); border-top-color: transparent; animation: spin 1s linear infinite; }
+  .proc-steps li.done .step-icon { border-color: var(--ok); background: var(--ok); color: white; animation: none; }
+  .proc-steps li.done .step-icon::after { content: "✓"; }
+
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
+
+<!-- Importmap for the 3 SOTA libraries -->
+<script type="importmap">
+{
+  "imports": {
+    "@imgly/background-removal": "https://esm.sh/@imgly/background-removal@1.7.0",
+    "@mediapipe/tasks-vision": "https://esm.sh/@mediapipe/tasks-vision@0.10.14",
+    "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1"
+  }
+}
+</script>
+</head>
+<body>
+
+  <!-- Initial Boot Loader -->
+  <div id="initLoader">
+    <div class="init-box">
+      <h2>Initializing AI Models</h2>
+      <p>Downloading AI engines securely to your browser cache for 100% offline, private processing.</p>
+      <div class="progress-bg"><div id="initProgressBar" class="progress-bar"></div></div>
+      <div id="initMbText">0.0 / 0.0 MB</div>
+    </div>
+  </div>
+
+  <div class="header-area">
+    <h1>AI Passport Photo Maker</h1>
+    <div class="privacy-badge">🔒 Local Processing Only: No images are uploaded to any server.</div>
+    <div class="feature-list">
+      <span>Background Removal</span>
+      <span>Auto Face Leveling & Sizing</span>
+      <span>Passport/Visa Photo Guidelines</span>
+      <span>Download 4x6" for Print</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="panel controls">
+      <div class="topbar">
+        <button id="uploadBtn" class="primary" disabled>Upload Photo</button>
+        <button id="resetBtn" disabled>Reset Adjustments</button>
+        <input id="fileInput" type="file" accept="image/png, image/jpeg, image/webp">
+      </div>
+
+      <div class="ctrl-row">
+        <span class="ctrl-label">Head Size</span>
+        <input id="headSlider" type="range" min="50" max="68" step="0.5" value="59" disabled>
+        <span id="headVal">59%</span>
+      </div>
+
+      <div style="text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; font-weight: 500;">Fine Placement (1px per tap)</div>
+      <div class="nudge-cross">
+        <div class="blank"></div>
+        <button id="nUp" disabled>↑</button>
+        <div class="blank"></div>
+        <button id="nLeft" disabled>←</button>
+        <div class="blank"></div>
+        <button id="nRight" disabled>→</button>
+        <div class="blank"></div>
+        <button id="nDown" disabled>↓</button>
+        <div class="blank"></div>
+      </div>
+      <p style="text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 0; margin-bottom: 20px;">(Or click & drag canvas directly)</p>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="gridToggle" disabled>
+        <label for="gridToggle">Show 16x16 Reference Grid</label>
+      </div>
+
+      <div class="feedback">
+        <h3>Compliance Checklist</h3>
+        <ul id="checklist"><li style="color: var(--text-muted);">Awaiting image upload...</li></ul>
+        <div id="overallStatus" style="color: var(--text-muted);">Status: Pending</div>
+      </div>
+        
+      <div class="feedback">
+        <h3>Image Metrics</h3>
+        <ul class="metrics-list" id="metricsList">
+            <li id="metRot">Iris-Level Rotation: -</li>
+            <li id="metNose">Nose offset from center: -</li>
+            <li id="metBodyLeft">Space left of Visible Body: -</li>
+            <li id="metBodyRight">Space right of Visible Body: -</li>
+            <li id="metHeadLeft">Space left of True Ear/Head: -</li>
+            <li id="metHeadRight">Space right of True Ear/Head: -</li>
+            <li id="metParseMode" style="margin-top: 8px; font-style: italic; color: #a855f7;">Mode: -</li>
+        </ul>
+      </div>
+
+      <div class="feedback" style="padding-bottom: 0; border-bottom: none;">
+        <button id="dlDigitalBtn" class="dl-btn" disabled>Download Digital (2x2")</button>
+        <button id="dlPrintBtn" class="dl-btn" style="background: var(--accent);" disabled>Download 4x6" for Print</button>
+      </div>
+    </div>
+
+    <div class="panel" style="display: flex; flex-direction: column; align-items: center;">
+      <canvas id="canvas" width="600" height="600"></canvas>
+      <p style="text-align: center; color: var(--text-muted); margin-top: 15px; font-size: 13px; line-height: 1.6;">
+        Canvas rendered internally at exactly <b>600x600 px</b> (2"x2" @ 300dpi).<br>
+        <span style="color: #3b82f6; font-weight: 600;">Blue Dotted:</span> Required Eye Zone<br>
+        <span style="color: #32ff00; font-weight: 600;">Green:</span> Hair | <span style="color: #ff9500; font-weight: 600;">Orange:</span> Chin | <span style="color: #00e5ff; font-weight: 600;">Cyan:</span> Eyes (Pupils)<br>
+        <span style="color: #ff00d6; font-weight: 600;">Magenta:</span> Nose | <span style="color: #eab308; font-weight: 600;">Yellow:</span> True Ear Edges | <span style="color: #a855f7; font-weight: 600;">Purple:</span> Visible Body
+      </p>
+    </div>
+  </div>
+
+  <div class="footer">
+    Powered by in-browser ML: Img.ly Background Removal, Google MediaPipe, and Transformers.js.
+  </div>
+
+  <!-- Processing Glassmorphism Loader -->
+  <div id="procLoader">
+    <div class="proc-box">
+      <h3>Processing Image</h3>
+      <ul class="proc-steps">
+        <li id="step1"><div class="step-icon"></div> Removing Background</li>
+        <li id="step2"><div class="step-icon"></div> Mapping Facial Geometry</li>
+        <li id="step3"><div class="step-icon"></div> Isolating True Ear Edges</li>
+      </ul>
+    </div>
+  </div>
+
+<script type="module">
+import { removeBackground } from '@imgly/background-removal';
+import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import { pipeline, env } from '@xenova/transformers';
+
+// DOM refs
+const uploadBtn    = document.getElementById('uploadBtn');
+const resetBtn     = document.getElementById('resetBtn');
+const fileInput    = document.getElementById('fileInput');
+const canvas       = document.getElementById('canvas');
+const ctx          = canvas.getContext('2d');
+const headSlider   = document.getElementById('headSlider');
+const headVal      = document.getElementById('headVal');
+const checklist    = document.getElementById('checklist');
+const overallStatus= document.getElementById('overallStatus');
+const gridToggle   = document.getElementById('gridToggle');
+const btnUp        = document.getElementById('nUp'), btnDown = document.getElementById('nDown');
+const btnLeft      = document.getElementById('nLeft'), btnRight = document.getElementById('nRight');
+
+const initLoader      = document.getElementById('initLoader');
+const initProgressBar = document.getElementById('initProgressBar');
+const initMbText      = document.getElementById('initMbText');
+
+const procLoader = document.getElementById('procLoader');
+const step1 = document.getElementById('step1');
+const step2 = document.getElementById('step2');
+const step3 = document.getElementById('step3');
+
+const metRot       = document.getElementById('metRot');
+const metNose      = document.getElementById('metNose');
+const metBodyLeft  = document.getElementById('metBodyLeft');
+const metBodyRight = document.getElementById('metBodyRight');
+const metHeadLeft  = document.getElementById('metHeadLeft');
+const metHeadRight = document.getElementById('metHeadRight');
+const metParseMode = document.getElementById('metParseMode');
+
+const dlDigitalBtn = document.getElementById('dlDigitalBtn');
+const dlPrintBtn   = document.getElementById('dlPrintBtn');
+
+// Constants
+const C = 600; 
+const EYE_ZONE_TOP = 187.5; 
+const EYE_ZONE_BOT = 262.5; 
+const EYE_TARGET_Y = 225;   
+const TASK_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+
+// App state
+let faceLandmarker = null;
+let faceParser = null; 
+let faceParseFallback = false;
+let modelsReady = false;
+
+let srcImage = null, srcHairY = 0, srcChinY = 0, srcEyeY = 0, srcNoseX = 0;
+let srcHeadLX = 0, srcHeadRX = 0, srcBottomY = 0;
+
+let srcOuterLMap =[]; 
+let srcOuterRMap =[]; 
+
+let imgRotationDeg = 0; 
+let headPct  = 59;
+let nudgeX = 0, nudgeY = 0;
+let showGrid = false;
+
+let taskTotalBytes = 0, taskDoneBytes = 0;
+let imglyTotalBytes = 22 * 1024 * 1024, imglyDoneBytes = 0;
+let taskArrayBuffer = null;
+
+// ── Init Pipeline ────────────────────────────────────────────────────────────
+function updateInitProgress() {
+  const tot = taskTotalBytes + imglyTotalBytes;
+  let don = taskDoneBytes + imglyDoneBytes;
+  
+  // Math Clamp to prevent UI jumping backwards
+  if (don > tot && tot > 0) don = tot;
+  
+  const pct = tot > 0 ? Math.min(100, Math.round(don / tot * 100)) : 0;
+  initProgressBar.style.width = pct + '%';
+  initMbText.textContent = `${(don/1048576).toFixed(1)} / ${(tot/1048576).toFixed(1)} MB`;
+}
+
+async function preloadAI() {
+  try {
+    // 1. MediaPipe Download
+    const head = await fetch(TASK_URL, { method: 'HEAD' }).catch(()=>null);
+    if (head && head.headers.get('Content-Length')) taskTotalBytes = parseInt(head.headers.get('Content-Length'), 10);
+    updateInitProgress();
+    const resp = await fetch(TASK_URL);
+    const reader = resp.body.getReader();
+    const chunks =[];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      taskDoneBytes += value.byteLength;
+      updateInitProgress();
+    }
+    const buf = new Uint8Array(chunks.reduce((s, c) => s + c.byteLength, 0));
+    let off = 0;
+    for (const c of chunks) { buf.set(c, off); off += c.byteLength; }
+    taskDoneBytes = buf.length; taskArrayBuffer = buf.buffer;
+
+    // 2. Img.ly Download Caching
+    await removeBackground(new Blob(['x'], { type: 'image/png' }), {
+      model: 'isnet_fp16', output: { format: 'image/png' },
+      progress: (k, curr, tot) => {
+        if (tot > 0) { imglyTotalBytes = tot; imglyDoneBytes = curr; }
+        else imglyDoneBytes = Math.min(imglyDoneBytes + 256*1024, imglyTotalBytes * 0.95);
+        updateInitProgress();
+      }
+    }).catch(() => {});
+    imglyDoneBytes = imglyTotalBytes; updateInitProgress();
+
+    // 3. Mount MediaPipe
+    const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetBuffer: new Uint8Array(taskArrayBuffer), delegate: 'GPU' },
+      runningMode: 'IMAGE', numFaces: 1
+    });
+
+    // 4. Try mounting Transformers.js Face Parsing
+    try {
+        env.allowLocalModels = false;
+        faceParser = await pipeline('image-segmentation', 'Xenova/face-parsing');
+        console.log("Transformers.js Semantic Face Parsing Loaded Successfully.");
+    } catch(e) {
+        console.warn("Face Parsing Semantic Model failed to load (CDN issue or missing weights). Falling back to Skin-Tone Raycast heuristic.");
+        faceParseFallback = true;
+    }
+
+    modelsReady = true;
+    uploadBtn.disabled = false;
+    
+    // Fade out loader
+    initLoader.style.opacity = '0';
+    setTimeout(() => initLoader.style.display = 'none', 400);
+
+  } catch (err) {
+    initLoader.innerHTML = `<div class="init-box"><h2 style="color:var(--bad)">Error Loading AI</h2><p>${err.message}</p></div>`;
+  }
+}
+preloadAI();
+
+// ── Math & Layout ────────────────────────────────────────────────────────────
+function computeLayout() {
+    const targetHeadPx = (headPct / 100) * C;
+    const srcHeadPx    = srcChinY - srcHairY;
+    const scale        = targetHeadPx / srcHeadPx;
+    
+    let drawX = (C / 2 + nudgeX) - srcNoseX * scale;
+    let targetDrawY = (EYE_TARGET_Y + nudgeY) - srcEyeY * scale;
+    
+    let restricted = false;
+    const bottomEdgeCanvas = targetDrawY + srcBottomY * scale;
+    if (bottomEdgeCanvas < C) {
+        targetDrawY = C - srcBottomY * scale;
+        nudgeY = targetDrawY + srcEyeY * scale - EYE_TARGET_Y;
+        restricted = true;
+    }
+    return { drawX, drawY: targetDrawY, scale, restricted };
+}
+
+function updateFeedback(drawX, drawY, scale, restricted, outerLX, outerRX, headLX, headRX) {
+    if (!srcImage) return;
+
+    const headY = drawY + srcHairY * scale;
+    const chinY = drawY + srcChinY * scale;
+    const eyeY  = drawY + srcEyeY * scale;
+    const noseX = drawX + srcNoseX * scale;
+
+    const headRatio = (chinY - headY) / C;
+    // Strict Javascript floating-point fix for compliance
+    const isHeadValid = headRatio.toFixed(2) >= 0.50 && headRatio.toFixed(2) <= 0.68;
+    const isEyeValid  = eyeY >= EYE_ZONE_TOP && eyeY <= EYE_ZONE_BOT;
+    const isNoseValid = Math.abs(noseX - C/2) <= 15;
+
+    checklist.innerHTML = '';
+    const addCheck = (text, valid, warn=false) => {
+        const li = document.createElement('li');
+        if (warn) { li.className = 'warn'; li.innerHTML = `⚠️ ${text}`; }
+        else { li.className = valid ? 'ok' : 'bad'; li.innerHTML = `${valid ? '✓' : '✗'} ${text}`; }
+        checklist.appendChild(li);
+    };
+
+    addCheck(`Head size 50-68% (Currently: ${(headRatio*100).toFixed(1)}%)`, isHeadValid);
+    addCheck(`Eyes (Pupils) 1 1/8" - 1 3/8" from bottom`, isEyeValid);
+    addCheck(`Nose centered horizontally`, isNoseValid);
+    if (restricted) addCheck(`Restricting upward movement to prevent blank edge`, false, true);
+
+    if (isHeadValid && isEyeValid && isNoseValid) {
+        overallStatus.textContent = '✅ Compliant Passport Photo';
+        overallStatus.style.color = 'var(--ok)';
+    } else {
+        overallStatus.textContent = '❌ Non-Compliant';
+        overallStatus.style.color = 'var(--bad)';
+    }
+
+    const rotVal = parseFloat(imgRotationDeg);
+    metRot.textContent = `Iris-Level Rotation: ${rotVal > 0 ? '+' : ''}${imgRotationDeg}°`;
+    
+    const noseOffset = Math.round(noseX - (C / 2));
+    metNose.textContent = `Nose offset from center: ${noseOffset > 0 ? '+' : ''}${noseOffset} px`;
+    
+    metBodyLeft.textContent = `Space left of Visible Body: ${Math.round(outerLX)} px`;
+    metBodyRight.textContent = `Space right of Visible Body: ${Math.round(C - outerRX)} px`;
+    metHeadLeft.textContent = `Space left of True Ear/Head: ${Math.round(headLX)} px`;
+    metHeadRight.textContent = `Space right of True Ear/Head: ${Math.round(C - headRX)} px`;
+    
+    metParseMode.textContent = faceParseFallback ? "Ear Detection Mode: Skin-Tone Raycast (Fallback)" : "Ear Detection Mode: Semantic Segmentation AI (SOTA)";
+}
+
+function drawToContext(targetCtx, withGuides) {
+    if (!srcImage) return;
+
+    const { drawX, drawY, scale, restricted } = computeLayout();
+
+    targetCtx.fillStyle = '#ffffff';
+    targetCtx.fillRect(0, 0, C, C);
+    targetCtx.drawImage(srcImage, drawX, drawY, srcImage.width * scale, srcImage.height * scale);
+
+    if (withGuides) {
+        if (showGrid) {
+            targetCtx.save();
+            targetCtx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+            targetCtx.lineWidth = 1;
+            const step = C / 16;
+            for (let i = 1; i < 16; i++) {
+                targetCtx.beginPath(); targetCtx.moveTo(i * step, 0); targetCtx.lineTo(i * step, C); targetCtx.stroke();
+                targetCtx.beginPath(); targetCtx.moveTo(0, i * step); targetCtx.lineTo(C, i * step); targetCtx.stroke();
+            }
+            targetCtx.restore();
+        }
+
+        const headY = drawY + srcHairY * scale;
+        const chinY = drawY + srcChinY * scale;
+        const eyeY  = drawY + srcEyeY * scale;
+        const noseX = drawX + srcNoseX * scale;
+        const headLX = drawX + srcHeadLX * scale;
+        const headRX = drawX + srcHeadRX * scale;
+
+        // Dynamic Visible Body Edge Lookup
+        let visibleLeft = srcImage.width, visibleRight = 0;
+        if (srcOuterLMap && srcOuterLMap.length > 0) {
+            let startY = Math.max(0, Math.floor(-drawY / scale));
+            let endY = Math.min(srcOuterLMap.length - 1, Math.ceil((C - drawY) / scale));
+            for (let y = startY; y <= endY; y++) {
+                if (srcOuterLMap[y] < visibleLeft) visibleLeft = srcOuterLMap[y];
+                if (srcOuterRMap[y] > visibleRight) visibleRight = srcOuterRMap[y];
+            }
+        }
+        if (visibleLeft === srcImage.width) { visibleLeft = 0; visibleRight = 0; }
+        
+        const outerLX = drawX + visibleLeft * scale;
+        const outerRX = drawX + visibleRight * scale;
+
+        targetCtx.save();
+        targetCtx.font = '12px system-ui, sans-serif';
+        
+        // Eye Zone
+        targetCtx.setLineDash([6, 5]); targetCtx.lineWidth = 2; targetCtx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+        targetCtx.beginPath(); targetCtx.moveTo(0, EYE_ZONE_TOP); targetCtx.lineTo(C, EYE_ZONE_TOP); targetCtx.stroke();
+        targetCtx.beginPath(); targetCtx.moveTo(0, EYE_ZONE_BOT); targetCtx.lineTo(C, EYE_ZONE_BOT); targetCtx.stroke();
+        targetCtx.fillStyle = 'rgba(59, 130, 246, 0.9)'; targetCtx.textBaseline = 'bottom';
+        targetCtx.fillText('Eye Max', 5, EYE_ZONE_TOP - 3); targetCtx.fillText('Eye Min', 5, EYE_ZONE_BOT - 3);
+
+        // Landmarks
+        targetCtx.setLineDash([]); targetCtx.lineWidth = 1.5; targetCtx.textBaseline = 'bottom';
+        targetCtx.strokeStyle = '#32ff00'; targetCtx.fillStyle = '#32ff00'; 
+        targetCtx.beginPath(); targetCtx.moveTo(0, headY); targetCtx.lineTo(C, headY); targetCtx.stroke();
+        targetCtx.fillText('Top of Hair', 5, headY - 3);
+        
+        targetCtx.strokeStyle = '#ff9500'; targetCtx.fillStyle = '#ff9500'; 
+        targetCtx.beginPath(); targetCtx.moveTo(0, chinY); targetCtx.lineTo(C, chinY); targetCtx.stroke();
+        targetCtx.fillText('Chin', 5, chinY - 3);
+        
+        targetCtx.strokeStyle = '#00e5ff'; targetCtx.fillStyle = '#00e5ff'; 
+        targetCtx.beginPath(); targetCtx.moveTo(0, eyeY); targetCtx.lineTo(C, eyeY); targetCtx.stroke();
+        targetCtx.fillText('Eyes', 5, eyeY - 3);
+
+        targetCtx.textBaseline = 'top';
+        targetCtx.strokeStyle = '#ff00d6'; targetCtx.fillStyle = '#ff00d6'; 
+        targetCtx.beginPath(); targetCtx.moveTo(noseX, 0); targetCtx.lineTo(noseX, C); targetCtx.stroke();
+        targetCtx.fillText('Nose', noseX + 4, 5);
+
+        // Body Edges (Purple)
+        targetCtx.strokeStyle = '#a855f7'; targetCtx.fillStyle = '#a855f7'; 
+        targetCtx.beginPath(); targetCtx.moveTo(outerLX, 0); targetCtx.lineTo(outerLX, C); targetCtx.stroke();
+        targetCtx.fillText('Vis Body L', outerLX + 4, 20);
+        targetCtx.beginPath(); targetCtx.moveTo(outerRX, 0); targetCtx.lineTo(outerRX, C); targetCtx.stroke();
+        targetCtx.textAlign = 'right'; targetCtx.fillText('Vis Body R', outerRX - 4, 20);
+        
+        // Head Edges (Yellow)
+        targetCtx.textAlign = 'left'; targetCtx.strokeStyle = '#eab308'; targetCtx.fillStyle = '#eab308';
+        targetCtx.beginPath(); targetCtx.moveTo(headLX, 0); targetCtx.lineTo(headLX, C); targetCtx.stroke();
+        targetCtx.fillText('True Ear/Head L', headLX + 4, 35);
+        targetCtx.beginPath(); targetCtx.moveTo(headRX, 0); targetCtx.lineTo(headRX, C); targetCtx.stroke();
+        targetCtx.textAlign = 'right'; targetCtx.fillText('True Ear/Head R', headRX - 4, 35);
+        targetCtx.restore();
+
+        if (targetCtx === ctx) {
+            updateFeedback(drawX, drawY, scale, restricted, outerLX, outerRX, headLX, headRX);
+        }
+    }
+}
+
+function drawPassport() {
+    drawToContext(ctx, true);
+}
+
+// ── Color Utilities for Fallback ─────────────────────────────────────────────
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    let max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) h = s = 0; 
+    else {
+        let d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) { case r: h = (g - b)/d + (g<b?6:0); break; case g: h = (b - r)/d + 2; break; case b: h = (r - g)/d + 4; break; }
+        h /= 6;
+    }
+    return[h * 360, s * 100, l * 100];
+}
+
+// ── Image Processing Logic ───────────────────────────────────────────────────
+function resetLoaderUI() {
+    step1.className = ''; step2.className = ''; step3.className = '';
+    procLoader.classList.add('show');
+}
+
+uploadBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !modelsReady) return;
+
+    resetLoaderUI();
+
+    try {
+        // Step 1: Remove BG
+        step1.classList.add('active');
+        const bgBlob = await removeBackground(file, { model: 'isnet_fp16', output: { format: 'image/png' } });
+        const img = new Image();
+        img.src = URL.createObjectURL(bgBlob);
+        await img.decode();
+        step1.classList.replace('active', 'done');
+
+        // Step 2: Facial Geometry & Eye Leveling
+        step2.classList.add('active');
+        await new Promise(r => setTimeout(r, 10)); // UI paint yield
+        
+        const maxDim = 1200;
+        const preScale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const pW = Math.round(img.width * preScale); const pH = Math.round(img.height * preScale);
+        
+        const c1 = document.createElement('canvas'); c1.width = pW; c1.height = pH;
+        const ctx1 = c1.getContext('2d'); ctx1.drawImage(img, 0, 0, pW, pH);
+
+        const res1 = faceLandmarker.detect(c1);
+        if (!res1.faceLandmarks?.length) throw new Error("No face detected in photo. Please ensure the subject is facing the camera.");
+        const lm1 = res1.faceLandmarks[0];
+        
+        // AUTO-ROTATE: Use Eye Irises (468, 473)
+        const eye1 = lm1[468], eye2 = lm1[473];
+        const eyeL1 = eye1.x < eye2.x ? eye1 : eye2; const eyeR1 = eye1.x < eye2.x ? eye2 : eye1;
+        const angle = Math.atan2((eyeR1.y - eyeL1.y)*pH, (eyeR1.x - eyeL1.x)*pW);
+        imgRotationDeg = (-angle * (180 / Math.PI)).toFixed(1);
+
+        const D = Math.ceil(Math.hypot(pW, pH));
+        const c2 = document.createElement('canvas'); c2.width = D; c2.height = D;
+        const ctx2 = c2.getContext('2d', { willReadFrequently: true });
+        
+        ctx2.translate(D/2, D/2); ctx2.rotate(-angle); ctx2.drawImage(c1, -pW/2, -pH/2);
+
+        // Geometric bottom edge fix
+        const pData = ctx1.getImageData(0,0,pW,pH).data;
+        let y_bottom = -1;
+        for (let y = pH - 1; y >= 0; y--) {
+            for (let x = 0; x < pW; x++) { if (pData[(y * pW + x) * 4 + 3] > 20) { y_bottom = y; break; } }
+            if (y_bottom !== -1) break;
+        }
+        let x_first = -1, x_last = -1;
+        if (y_bottom !== -1) {
+            for (let y = y_bottom; y >= Math.max(0, y_bottom - 10); y--) {
+                for (let x = 0; x < pW; x++) {
+                    if (pData[(y * pW + x) * 4 + 3] > 20) {
+                        if (x_first === -1 || x < x_first) x_first = x;
+                        if (x_last === -1 || x > x_last) x_last = x;
+                    }
+                }
+            }
+        }
+        function mapToC2(x, y) { return (x - pW/2) * Math.sin(-angle) + (y - pH/2) * Math.cos(-angle) + D/2; }
+        srcBottomY = Math.min(mapToC2(x_first !== -1 ? x_first : 0, y_bottom !== -1 ? y_bottom : pH), mapToC2(x_last !== -1 ? x_last : pW, y_bottom !== -1 ? y_bottom : pH));
+
+        // Second detect on upright canvas
+        const c3 = document.createElement('canvas'); c3.width = D; c3.height = D;
+        const ctx3 = c3.getContext('2d'); ctx3.fillStyle = '#fff'; ctx3.fillRect(0,0,D,D); ctx3.drawImage(c2, 0, 0);
+        const res2 = faceLandmarker.detect(c3);
+        const lm2 = res2.faceLandmarks[0];
+
+        step2.classList.replace('active', 'done');
+
+        // Step 3: Isolating Ear Cartilage
+        step3.classList.add('active');
+        await new Promise(r => setTimeout(r, 10));
+
+        const pixels2 = ctx2.getImageData(0, 0, D, D).data;
+        let hairTop = -1;
+        
+        srcOuterLMap = new Int32Array(D).fill(D);
+        srcOuterRMap = new Int32Array(D).fill(0);
+
+        for (let y = 0; y < D; y++) {
+            for (let x = 0; x < D; x++) { 
+                if (pixels2[(y*D + x)*4 + 3] > 20) { 
+                    if (hairTop === -1) hairTop = y; 
+                    if (x < srcOuterLMap[y]) srcOuterLMap[y] = x;
+                    if (x > srcOuterRMap[y]) srcOuterRMap[y] = x;
+                } 
+            }
+        }
+
+        let headLeft = D, headRight = 0;
+
+        // --- TRIPLE THREAT: SEMANTIC EAR SEGMENTATION ---
+        if (faceParser && !faceParseFallback) {
+            const rotatedBlobUrl = c2.toDataURL("image/png");
+            const parseResult = await faceParser(rotatedBlobUrl);
+            const e1 = parseResult.find(r => r.label === 'left_ear' || r.label === 'l_ear');
+            const e2 = parseResult.find(r => r.label === 'right_ear' || r.label === 'r_ear');
+            const skin = parseResult.find(r => r.label === 'skin');
+
+            function getMaskExtremes(maskDataObj) {
+                if (!maskDataObj) return { minX: D, maxX: 0 };
+                const w = maskDataObj.mask.width; const h = maskDataObj.mask.height;
+                const rawData = maskDataObj.mask.data; 
+                const scaleW = D / w;
+                let minX = D, maxX = 0;
+                for (let y=0; y < h; y++) {
+                    for(let x=0; x < w; x++){
+                        if (rawData[y*w + x] > 128) {
+                            let mappedX = x * scaleW;
+                            if (mappedX < minX) minX = mappedX;
+                            if (mappedX > maxX) maxX = mappedX;
+                        }
+                    }
+                }
+                return { minX, maxX };
+            }
+
+            const e1Ex = getMaskExtremes(e1); const e2Ex = getMaskExtremes(e2);
+            if (e1Ex.minX !== D || e2Ex.minX !== D) {
+                headLeft = Math.min(e1Ex.minX, e2Ex.minX);
+                headRight = Math.max(e1Ex.maxX, e2Ex.maxX);
+            } else {
+                const skinEx = getMaskExtremes(skin);
+                headLeft = skinEx.minX; headRight = skinEx.maxX;
+            }
+        } 
+        
+        // --- FALLBACK: SKIN-TONE RAYCAST ---
+        if (headLeft === D || headRight === 0 || faceParseFallback) {
+            faceParseFallback = true;
+            const noseCX = Math.floor(lm2[1].x * D); const noseCY = Math.floor(lm2[1].y * D);
+            let noseHueSum = 0, validSamples = 0;
+
+            for (let ny = noseCY - 2; ny <= noseCY + 2; ny++) {
+                for (let nx = noseCX - 2; nx <= noseCX + 2; nx++) {
+                    let idx = (ny * D + nx) * 4;
+                    if (pixels2[idx+3] > 20) {
+                        let[h, s, l] = rgbToHsl(pixels2[idx], pixels2[idx+1], pixels2[idx+2]);
+                        noseHueSum += h; validSamples++;
+                    }
+                }
+            }
+            const baseHue = validSamples > 0 ? noseHueSum / validSamples : 0;
+            function isSkin(r, g, b) {
+                let[h, s, l] = rgbToHsl(r, g, b);
+                let hueDiff = Math.abs(h - baseHue); if (hueDiff > 180) hueDiff = 360 - hueDiff; 
+                return (hueDiff < 30 && s > 10);
+            }
+
+            const chinYLimit = Math.floor(lm2[152].y * D);
+            const startY = hairTop !== -1 ? hairTop : 0;
+
+            for (let y = startY; y <= chinYLimit; y++) {
+                let rowL = srcOuterLMap[y], rowR = srcOuterRMap[y];
+                if (rowL === D) continue;
+
+                for (let x = rowL; x <= noseCX; x++) {
+                    if (pixels2[(y*D+x)*4+3] > 20 && isSkin(pixels2[(y*D+x)*4], pixels2[(y*D+x)*4+1], pixels2[(y*D+x)*4+2])) {
+                        if (x < headLeft) headLeft = x; break; 
+                    }
+                }
+                for (let x = rowR; x >= noseCX; x--) {
+                    if (pixels2[(y*D+x)*4+3] > 20 && isSkin(pixels2[(y*D+x)*4], pixels2[(y*D+x)*4+1], pixels2[(y*D+x)*4+2])) {
+                        if (x > headRight) headRight = x; break; 
+                    }
+                }
+            }
+            if (headLeft === D) headLeft = 0; if (headRight === 0) headRight = D;
+        }
+
+        step3.classList.replace('active', 'done');
+
+        // Finalize states
+        srcImage = c2;
+        srcHairY = hairTop !== -1 ? hairTop : (lm2[152].y - (lm2[152].y - lm2[1].y)*1.8)*D;
+        srcChinY = lm2[152].y * D;
+        srcEyeY = ((lm2[468].y + lm2[473].y) / 2) * D; 
+        srcNoseX = lm2[1].x * D;
+        srcHeadLX = headLeft; srcHeadRX = headRight;
+
+        // Unlock UI
+        headSlider.disabled = false; resetBtn.disabled = false; gridToggle.disabled = false;
+        btnUp.disabled = false; btnDown.disabled = false; btnLeft.disabled = false; btnRight.disabled = false;
+        dlDigitalBtn.disabled = false; dlPrintBtn.disabled = false;
+        
+        document.getElementById('resetBtn').click();
+        
+        // Remove loader smoothly
+        setTimeout(() => { procLoader.classList.remove('show'); }, 500);
+
+    } catch (err) {
+        console.error(err);
+        procLoader.classList.remove('show');
+        alert(err.message);
+    } 
+});
+
+// ── Controls ─────────────────────────────────────────────────────────────────
+headSlider.addEventListener('input', (e) => { headPct = parseFloat(e.target.value); headVal.textContent = headPct.toFixed(1) + '%'; nudgeX = 0; nudgeY = 0; drawPassport(); });
+gridToggle.addEventListener('change', () => { drawPassport(); });
+resetBtn.addEventListener('click', () => { headSlider.value = 59; headPct = 59; headVal.textContent = '59%'; nudgeX = 0; nudgeY = 0; drawPassport(); });
+
+function applyNudge(dx, dy) { nudgeX += dx; nudgeY += dy; drawPassport(); }
+function setupNudge(btn, dx, dy) {
+    let nInterval = null, initialTimeout = null;
+    const start = (e) => {
+        e.preventDefault(); applyNudge(dx, dy);
+        initialTimeout = setTimeout(() => { nInterval = setInterval(() => applyNudge(dx, dy), 35); }, 300);
+    };
+    const stop = () => { clearTimeout(initialTimeout); clearInterval(nInterval); };
+    btn.addEventListener('pointerdown', start); btn.addEventListener('pointerup', stop); btn.addEventListener('pointerleave', stop); btn.addEventListener('pointercancel', stop);
+}
+setupNudge(btnUp, 0, -1); setupNudge(btnDown, 0, 1); setupNudge(btnLeft, -1, 0); setupNudge(btnRight, 1, 0);
+
+let isDragging = false; let lastX, lastY;
+canvas.addEventListener('pointerdown', e => { if (!srcImage) return; isDragging = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (!isDragging) return; nudgeX += (e.clientX - lastX) * (600 / canvas.clientWidth); nudgeY += (e.clientY - lastY) * (600 / canvas.clientHeight); lastX = e.clientX; lastY = e.clientY; drawPassport(); });
+canvas.addEventListener('pointerup', () => isDragging = false); canvas.addEventListener('pointercancel', () => isDragging = false);
+
+// ── Download Logic ───────────────────────────────────────────────────────────
+function triggerDownload(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Single Digital
+dlDigitalBtn.addEventListener('click', () => {
+    if (!srcImage) return;
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = 600; offCanvas.height = 600;
+    const offCtx = offCanvas.getContext('2d');
+    drawToContext(offCtx, false); 
+    triggerDownload(offCanvas.toDataURL("image/jpeg", 1.0), 'passport_2x2_digital.jpg');
+});
+
+// 4x6 Print Sheet (White Background + 2 Photos + Cut Lines)
+dlPrintBtn.addEventListener('click', () => {
+    if (!srcImage) return;
+    
+    const passCanvas = document.createElement('canvas');
+    passCanvas.width = 600; passCanvas.height = 600;
+    const passCtx = passCanvas.getContext('2d');
+    drawToContext(passCtx, false); 
+    
+    const printCanvas = document.createElement('canvas');
+    printCanvas.width = 1200; printCanvas.height = 1800;
+    const printCtx = printCanvas.getContext('2d');
+    
+    // Fill White Background
+    printCtx.fillStyle = '#ffffff';
+    printCtx.fillRect(0, 0, 1200, 1800);
+    
+    // Draw images (centered horizontally, stacked vertically)
+    printCtx.drawImage(passCanvas, 300, 150);
+    printCtx.drawImage(passCanvas, 300, 1050);
+
+    // Draw Cut Guides
+    printCtx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    printCtx.lineWidth = 2;
+    printCtx.setLineDash([15, 10]);
+
+    function drawCutGuide(x1, y1, x2, y2) {
+        printCtx.beginPath();
+        printCtx.moveTo(x1, y1);
+        printCtx.lineTo(x2, y2);
+        printCtx.stroke();
+    }
+
+    const gap = 15; // Safe gap from photo edge
+    const img1Y = 150, img2Y = 1050;
+    const leftX = 300, rightX = 900;
+
+    // --- Image 1 (Top) ---
+    drawCutGuide(0, img1Y, leftX - gap, img1Y); // Top-Left Horiz
+    drawCutGuide(1200, img1Y, rightX + gap, img1Y); // Top-Right Horiz
+    drawCutGuide(leftX, 0, leftX, img1Y - gap); // Top-Left Vert
+    drawCutGuide(rightX, 0, rightX, img1Y - gap); // Top-Right Vert
+    
+    drawCutGuide(0, img1Y + 600, leftX - gap, img1Y + 600); // Bot-Left Horiz
+    drawCutGuide(1200, img1Y + 600, rightX + gap, img1Y + 600); // Bot-Right Horiz
+    drawCutGuide(leftX, img1Y + 600 + gap, leftX, img1Y + 600 + 150); // Bot-Left Vert 
+    drawCutGuide(rightX, img1Y + 600 + gap, rightX, img1Y + 600 + 150); // Bot-Right Vert 
+
+    // --- Image 2 (Bottom) ---
+    drawCutGuide(0, img2Y, leftX - gap, img2Y); // Top-Left Horiz
+    drawCutGuide(1200, img2Y, rightX + gap, img2Y); // Top-Right Horiz
+    drawCutGuide(leftX, img2Y - 150, leftX, img2Y - gap); // Top-Left Vert 
+    drawCutGuide(rightX, img2Y - 150, rightX, img2Y - gap); // Top-Right Vert
+    
+    drawCutGuide(0, img2Y + 600, leftX - gap, img2Y + 600); // Bot-Left Horiz
+    drawCutGuide(1200, img2Y + 600, rightX + gap, img2Y + 600); // Bot-Right Horiz
+    drawCutGuide(leftX, img2Y + 600 + gap, leftX, 1800); // Bot-Left Vert 
+    drawCutGuide(rightX, img2Y + 600 + gap, rightX, 1800); // Bot-Right Vert
+
+    triggerDownload(printCanvas.toDataURL("image/jpeg", 1.0), 'passport_4x6_print.jpg');
+});
+
+drawPassport();
+
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker Registered!', reg.scope))
+        .catch(err => console.error('Service Worker Registration Failed!', err));
+    });
+  }
+</script>
+</body>
+</html>
