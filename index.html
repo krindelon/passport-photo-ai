@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>AI Passport Photo Maker</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ffffff">
+<!-- Correct way to handle PWA theme colors for light/dark mode -->
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 
 <style>
@@ -30,7 +32,6 @@
       --canvas-bg:  #111827; 
       --glass-bg:   rgba(31, 41, 55, 0.85);
     }
-    meta[name="theme-color"] { content: "#1f2937"; }
   }
 
   /* ── Reset & Base ─────────────────────────────────────────── */
@@ -68,13 +69,16 @@
     padding: 4px 8px; border-radius: 12px; font-weight: 600;
   }
 
-  /* ── Vertical Sections (Hairline Dividers) ────────────────── */
+  /* ── Sections ─────────────────────────────────────────────── */
   .section {
-    padding: 20px 15px;
-    border-bottom: 1px solid var(--border);
+    padding: 12px 15px; /* Compact padding */
   }
-  .section:last-of-type { border-bottom: none; }
-  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 12px 0; }
+  .canvas-section {
+    border-bottom: 1px solid var(--border);
+    padding-top: 20px;
+    padding-bottom: 24px;
+  }
+  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 8px 0; }
 
   /* ── Sticky Canvas & D-Pad ────────────────────────────────── */
   .dpad-wrapper {
@@ -92,7 +96,11 @@
 
   #canvas {
     display: block; width: 100%; height: auto; aspect-ratio: 1 / 1;
-    cursor: pointer; touch-action: none; 
+    cursor: pointer; 
+    touch-action: none; 
+    -webkit-touch-callout: none; /* Prevent iOS popup */
+    -webkit-user-select: none;   /* Prevent selection */
+    user-select: none;
   }
   #canvas.active-drag { cursor: grabbing; }
 
@@ -103,6 +111,11 @@
     color: #1f2937;
     backdrop-filter: blur(4px); padding: 0; transition: 0.15s;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    /* Prevent mobile tap actions */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
   }
   .icon-btn:hover { background: #ffffff; transform: scale(1.05); }
   .icon-btn:active { transform: scale(0.95); }
@@ -115,6 +128,11 @@
     border: 1px solid var(--border); 
     display: none; align-items: center; justify-content: center; 
     cursor: pointer; transition: 0.15s;
+    /* Prevent mobile tap actions */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
   }
   .dir-btn:hover { color: var(--text); background: var(--canvas-bg); }
   .dir-btn:active { background: var(--border); }
@@ -132,25 +150,25 @@
   input[type="file"] { display: none; }
   
   .ctrl-row { display: flex; align-items: center; gap: 10px; }
-  .ctrl-label { font-size: 14px; font-weight: 600; min-width: 75px; }
+  .ctrl-label { font-size: 13px; font-weight: 600; min-width: 70px; }
   input[type="range"] { flex: 1; accent-color: var(--accent); }
-  #headVal { font-size: 14px; font-weight: 500; min-width: 35px; text-align: right; }
+  #headVal { font-size: 13px; font-weight: 500; min-width: 35px; text-align: right; }
 
   .checklist { list-style: none; padding: 0; margin: 0; font-size: 13px; font-weight: 500;}
-  .checklist li { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .checklist li { margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
   .checklist li:last-child { margin-bottom: 0; }
   .checklist li.ok { color: var(--ok); }
   .checklist li.bad { color: var(--bad); }
 
   /* ── De-emphasized Metrics ────────────────────────────────── */
-  .metrics-section .section-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+  .metrics-section .section-title { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
   .metrics-grid {
-    display: flex; flex-direction: column; gap: 6px;
+    display: flex; flex-direction: column; gap: 5px;
     font-size: 12px; color: var(--text-muted); list-style: none; padding: 0; margin: 0;
   }
   .metrics-grid li { 
     display: flex; justify-content: space-between; 
-    border-bottom: 1px dashed var(--border); padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border); padding-bottom: 3px;
   }
   .metrics-grid li strong { color: var(--text); font-weight: 500;}
 
@@ -248,7 +266,7 @@
     </header>
 
     <!-- Canvas Section -->
-    <div class="section canvas-section" style="padding-bottom: 30px;">
+    <div class="section canvas-section">
       <div class="dpad-wrapper" id="dpadWrapper">
         <div class="canvas-wrapper">
           <button id="uploadOverlay" class="icon-btn top-left" title="Change Photo">
@@ -270,32 +288,32 @@
     <!-- Hidden Input -->
     <input id="fileInput" type="file" accept="image/png, image/jpeg, image/webp">
 
-    <!-- Controls Section -->
-    <div class="section ctrl-section">
+    <!-- Compact Details Section (Controls, Checklist, Metrics) -->
+    <div class="section" style="display: flex; flex-direction: column; gap: 14px;">
+      
+      <!-- Head Size Slider -->
       <div class="ctrl-row">
         <span class="ctrl-label">Head Size</span>
         <input id="headSlider" type="range" min="50" max="68" step="0.5" value="59" disabled>
         <span id="headVal">59%</span>
       </div>
-    </div>
 
-    <!-- Checklist Section -->
-    <div class="section feedback-section">
-      <div class="section-title">Compliance Checklist</div>
+      <!-- Checklist (Heading Removed for Compactness) -->
       <ul id="checklist" class="checklist"><li style="color: var(--text-muted);">Awaiting image upload...</li></ul>
-    </div>
-      
-    <!-- Metrics Section -->
-    <div class="section metrics-section">
-      <div class="section-title">Image Metrics</div>
-      <ul class="metrics-grid">
-          <li>Rotation <strong id="metRot">-</strong></li>
-          <li>Nose Offset <strong id="metNose">-</strong></li>
-          <li>Vis Body Left <strong id="metBodyLeft">-</strong></li>
-          <li>Vis Body Right <strong id="metBodyRight">-</strong></li>
-          <li>True Head Left <strong id="metHeadLeft">-</strong></li>
-          <li>True Head Right <strong id="metHeadRight">-</strong></li>
-      </ul>
+        
+      <!-- Metrics -->
+      <div class="metrics-section">
+        <div class="section-title">Image Metrics</div>
+        <ul class="metrics-grid">
+            <li>Rotation <strong id="metRot">-</strong></li>
+            <li>Nose Offset <strong id="metNose">-</strong></li>
+            <li>Left Shoulder Margin <strong id="metBodyLeft">-</strong></li>
+            <li>Right Shoulder Margin <strong id="metBodyRight">-</strong></li>
+            <li>Left Head Margin <strong id="metHeadLeft">-</strong></li>
+            <li>Right Head Margin <strong id="metHeadRight">-</strong></li>
+        </ul>
+      </div>
+
     </div>
 
     <!-- Sticky Bottom Bar -->
