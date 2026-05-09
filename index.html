@@ -189,6 +189,7 @@
   @keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 
+<!-- Importmap for the 3 SOTA libraries -->
 <script type="importmap">
 {
   "imports": {
@@ -225,15 +226,6 @@
       
       <canvas id="canvas" width="600" height="600"></canvas>
       
-      <p style="color: var(--text-muted); margin-top: 15px; margin-bottom: 0; font-size: 12px; text-align: center;">
-        <span style="color: #3b82f6; font-weight:600;">Blue:</span> Eye Zone | 
-        <span style="color: #32ff00; font-weight:600;">Green:</span> Hair | 
-        <span style="color: #ff9500; font-weight:600;">Orange:</span> Chin<br>
-        <span style="color: #00e5ff; font-weight:600;">Cyan:</span> Pupils | 
-        <span style="color: #ff00d6; font-weight:600;">Magenta:</span> Nose<br>
-        <span style="color: #eab308; font-weight:600;">Yellow:</span> True Ear | 
-        <span style="color: #a855f7; font-weight:600;">Purple:</span> Body Edge
-      </p>
     </div>
 
     <!-- CONTROLS PANEL -->
@@ -371,6 +363,7 @@ let taskTotalBytes = 0, taskDoneBytes = 0;
 let imglyTotalBytes = 22 * 1024 * 1024, imglyDoneBytes = 0;
 let taskArrayBuffer = null;
 
+// ── Init Pipeline ────────────────────────────────────────────────────────────
 function updateInitProgress() {
   const tot = taskTotalBytes + imglyTotalBytes;
   let don = taskDoneBytes + imglyDoneBytes;
@@ -421,7 +414,7 @@ async function preloadAI() {
         faceParser = await pipeline('image-segmentation', 'Xenova/face-parsing');
         console.log("Transformers.js Semantic Face Parsing Loaded Successfully.");
     } catch(e) {
-        console.warn("Face Parsing failed to load. Falling back to Skin-Tone Raycast.");
+        console.warn("Face Parsing Semantic Model failed to load. Falling back to Skin-Tone Raycast heuristic.");
         faceParseFallback = true;
     }
 
@@ -437,6 +430,7 @@ async function preloadAI() {
 }
 preloadAI();
 
+// ── Math & Layout ────────────────────────────────────────────────────────────
 function computeLayout() {
     const targetHeadPx = (headPct / 100) * C;
     const srcHeadPx    = srcChinY - srcHairY;
