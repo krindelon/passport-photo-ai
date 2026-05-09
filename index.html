@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>AI Passport Photo Maker</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2563eb">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
+
 <style>
   /* ── Theme ────────────────────────────────────────────────── */
   :root {
@@ -28,160 +29,166 @@
       --border:     #374151;
       --text:       #f9fafb;
       --text-muted: #9ca3af;
-      --canvas-bg:  #ffffff; /* Canvas stays white for the passport photo */
+      --canvas-bg:  #ffffff; 
       --glass-bg:   rgba(31, 41, 55, 0.85);
     }
   }
 
-  /* ── Reset & base ─────────────────────────────────────────── */
+  /* ── Reset & Base ─────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
     background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     min-height: 100dvh; display: flex; flex-direction: column;
+    padding-bottom: 80px; 
   }
 
-  /* ── Headers & Privacy ────────────────────────────────────── */
-  .header-area { text-align: center; padding: 30px 15px 15px; }
-  .header-area h1 { margin: 0 0 10px 0; font-size: 28px; }
+  /* ── Compact App Header ───────────────────────────────────── */
+  .app-header {
+    background: var(--surface);
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .app-header h1 { margin: 0; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px;}
   .privacy-badge {
-    display: inline-block; background: rgba(16, 185, 129, 0.1); color: var(--ok);
-    padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 12px;
+    font-size: 11px; background: rgba(16, 185, 129, 0.1); color: var(--ok);
+    padding: 4px 8px; border-radius: 12px; font-weight: 600;
   }
-  .feature-list {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
-    font-size: 13px; color: var(--text-muted); font-weight: 500;
-  }
-  .feature-list span::after { content: "•"; margin-left: 8px; color: var(--border); }
-  .feature-list span:last-child::after { content: ""; }
 
-  /* ── Layout ───────────────────────────────────────────────── */
+  /* ── Layout (Mobile First) ────────────────────────────────── */
   .container {
-    display: flex; flex-wrap: wrap; max-width: 1000px;
-    margin: 0 auto 40px; gap: 30px; padding: 0 15px;
-    justify-content: center; align-items: flex-start; flex: 1;
+    display: flex; flex-direction: column; 
+    max-width: 900px; margin: 0 auto; gap: 15px; padding: 15px; width: 100%; flex: 1;
   }
   
-  .panel {
-    background: var(--surface); padding: 25px;
-    border-radius: 16px; border: 1px solid var(--border);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    flex: 1; min-width: 320px; max-width: 450px;
+  @media (min-width: 768px) {
+    .container { flex-direction: row-reverse; align-items: flex-start; }
+    .panel { flex: 1; }
   }
 
-  .topbar { display: flex; gap: 10px; margin-bottom: 25px; }
+  .panel {
+    background: var(--surface); padding: 20px;
+    border-radius: 16px; border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04); width: 100%;
+  }
+
+  /* ── Sticky Canvas Panel ──────────────────────────────────── */
+  .canvas-panel {
+    position: sticky; top: 60px; z-index: 40; 
+    padding: 15px; display: flex; flex-direction: column; align-items: center;
+  }
+  #canvas {
+    display: block; width: 100%; max-width: 380px; height: auto;
+    aspect-ratio: 1 / 1; margin: 0 auto;
+    background: var(--canvas-bg); border: 1px solid var(--border); border-radius: 8px;
+    cursor: grab; touch-action: none; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  #canvas:active { cursor: grabbing; }
+
+  /* ── Controls & Buttons ───────────────────────────────────── */
+  .topbar { display: flex; gap: 10px; margin-bottom: 20px; }
   input[type="file"] { display: none; }
 
-  /* ── Buttons ──────────────────────────────────────────────── */
   button {
-    flex: 1; padding: 12px 16px; font-size: 15px; font-weight: 600;
+    flex: 1; padding: 12px 16px; font-size: 14px; font-weight: 600;
     border: 1px solid var(--border); background: var(--bg); color: var(--text);
-    border-radius: 8px; cursor: pointer; transition: 0.15s; user-select: none;
+    border-radius: 8px; cursor: pointer; transition: 0.1s; user-select: none;
   }
   button:hover:not(:disabled) { filter: brightness(0.95); }
   button:active:not(:disabled) { transform: scale(0.98); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
-  
   .primary { background: var(--accent); color: white; border: none; }
   .primary:hover:not(:disabled) { background: #1d4ed8; filter: none; }
+
+  /* ── Sliders & D-Pad ──────────────────────────────────────── */
+  .ctrl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+  .ctrl-label { font-size: 14px; font-weight: 600; min-width: 75px; }
+  input[type="range"] { flex: 1; accent-color: var(--accent); }
+  #headVal { font-size: 14px; font-weight: 500; min-width: 35px; text-align: right; }
+
+  .nudge-cross {
+    display: grid; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px);
+    gap: 4px; justify-content: center; margin-bottom: 15px;
+  }
+  .nudge-cross button { padding: 0; font-size: 18px; border-radius: 6px; }
+  .nudge-cross .blank { visibility: hidden; }
+
+  /* ── 2-Column Metrics Grid ────────────────────────────────── */
+  .feedback { padding-top: 15px; border-top: 1px solid var(--border); margin-top: 15px;}
+  .section-title { font-size: 14px; font-weight: 600; margin: 0 0 10px 0; }
   
+  .metrics-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;
+    font-size: 12px; color: var(--text-muted); list-style: none; padding: 0; margin: 0;
+  }
+  .metrics-grid li { background: var(--bg); padding: 8px; border-radius: 6px; display: flex; flex-direction: column; gap: 2px;}
+  .metrics-grid li strong { color: var(--text); font-size: 13px;}
+  
+  .checklist { list-style: none; padding: 0; margin: 0; font-size: 13px; font-weight: 500;}
+  .checklist li { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .checklist li.ok { color: var(--ok); }
+  .checklist li.bad { color: var(--bad); }
+  .checklist li.warn { color: #f59e0b; }
+  #overallStatus { font-weight: 700; font-size: 15px; margin-top: 15px; text-align: center; padding: 10px; border-radius: 8px; background: var(--bg);}
+
+  /* ── Sticky Bottom Bar ────────────────────────────────────── */
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border); padding: 12px 15px; padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px; box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+  }
   .dl-btn { 
     background: var(--ok); color: white; border: none; 
-    padding: 14px; width: 100%; margin-top: 10px; font-size: 15px;
+    padding: 14px; font-size: 15px; border-radius: 10px;
   }
   .dl-btn:hover:not(:disabled) { background: #059669; filter: none; }
 
-  /* ── Canvas ───────────────────────────────────────────────── */
-  #canvas {
-    display: block; width: 100%; max-width: 400px; height: auto;
-    aspect-ratio: 1 / 1; margin: 0 auto;
-    background: var(--canvas-bg); border: 1px solid var(--border); border-radius: 4px;
-    cursor: grab; touch-action: none; /* Prevents mobile scrolling while dragging */
-  }
-  #canvas:active { cursor: grabbing; }
-
-  /* ── Controls ───────────────────────────────────────── */
-  .ctrl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-  .ctrl-label { font-size: 14px; font-weight: 600; min-width: 80px; }
-  input[type="range"] { flex: 1; accent-color: var(--accent); }
-  #headVal { font-size: 14px; font-weight: 500; min-width: 40px; text-align: right; }
-
-  .checkbox-row {
-    display: flex; justify-content: center; align-items: center; gap: 8px;
-    margin-top: -5px; margin-bottom: 20px;
-  }
-  .checkbox-row input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer;}
-  .checkbox-row label { font-size: 14px; color: var(--text-muted); cursor: pointer; user-select: none; }
-
-  /* ── Nudge cross ──────────────────────────────────────────── */
-  .nudge-cross {
-    display: grid; grid-template-columns: repeat(3, 45px); grid-template-rows: repeat(3, 45px);
-    gap: 5px; justify-content: center; margin-bottom: 10px;
-  }
-  .nudge-cross button { padding: 0; font-size: 20px; display: flex; align-items: center; justify-content: center; }
-  .nudge-cross .blank { visibility: hidden; }
-
-  /* ── Feedback & Metrics ─────────────────────────── */
-  .feedback { padding-top: 20px; border-top: 1px solid var(--border); }
-  .feedback h3 { margin: 0 0 10px 0; font-size: 15px; }
-  .feedback ul { list-style: none; padding: 0; margin: 0 0 15px 0; font-size: 14px; font-weight: 500;}
-  .feedback li { margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px;}
-  .feedback li.ok { color: var(--ok); }
-  .feedback li.bad { color: var(--bad); }
-  .feedback li.warn { color: #f59e0b; }
-  
-  .metrics-list { list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted); }
-  .metrics-list li { margin-bottom: 5px; }
-
-  #overallStatus { font-weight: 700; font-size: 16px; margin: 15px 0; text-align: center;}
-
-  /* ── Footer ───────────────────────────────────────── */
+  /* ── Footer ───────────────────────────────────────────────── */
   .footer {
     text-align: center; padding: 20px; font-size: 13px; color: var(--text-muted);
     border-top: 1px solid var(--border); margin-top: auto;
   }
 
-  /* ── Glassmorphism Initial Loader ────────────────────────────────── */
+  /* ── Loaders ──────────────────────────────────────────────── */
   #initLoader {
     position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: var(--bg); z-index: 1000; transition: opacity 0.4s ease;
+    background: var(--bg); z-index: 1000; transition: opacity 0.4s;
   }
   .init-box {
-    background: var(--surface); padding: 40px; border-radius: 16px; border: 1px solid var(--border);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); text-align: center; width: 90%; max-width: 400px;
+    background: var(--surface); padding: 30px; border-radius: 16px; border: 1px solid var(--border);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); text-align: center; width: 90%; max-width: 350px;
   }
-  .init-box h2 { margin: 0 0 10px 0; font-size: 20px; }
-  .init-box p { font-size: 14px; color: var(--text-muted); margin-bottom: 25px; line-height: 1.5;}
-  .progress-bg { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 15px;}
+  .init-box h2 { margin: 0 0 8px 0; font-size: 18px; }
+  .init-box p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+  .progress-bg { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 10px;}
   .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease; }
-  #initMbText { font-size: 13px; font-weight: 600; color: var(--text); }
-
-  /* ── Glassmorphism Processing Loader ───────────────────────────── */
+  
   #procLoader {
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-    background: var(--glass-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    z-index: 999;
+    background: var(--glass-bg); backdrop-filter: blur(8px); z-index: 999;
   }
   #procLoader.show { display: flex; }
   .proc-box {
     background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); width: 90%; max-width: 320px;
+    padding: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); width: 90%; max-width: 300px;
   }
-  .proc-box h3 { margin: 0 0 20px 0; text-align: center; font-size: 18px; }
-  .proc-steps { list-style: none; padding: 0; margin: 0; font-size: 14px; font-weight: 500;}
-  .proc-steps li { margin-bottom: 15px; display: flex; align-items: center; gap: 12px; color: var(--text-muted); transition: 0.3s; }
+  .proc-steps { list-style: none; padding: 0; margin: 15px 0 0; font-size: 14px; font-weight: 500;}
+  .proc-steps li { margin-bottom: 12px; display: flex; align-items: center; gap: 10px; color: var(--text-muted); }
   .proc-steps li.active { color: var(--text); }
   .proc-steps li.done { color: var(--ok); }
-  .step-icon { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px;}
+  .step-icon { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px;}
   .proc-steps li.active .step-icon { border-color: var(--accent); border-top-color: transparent; animation: spin 1s linear infinite; }
-  .proc-steps li.done .step-icon { border-color: var(--ok); background: var(--ok); color: white; animation: none; }
+  .proc-steps li.done .step-icon { border-color: var(--ok); background: var(--ok); color: white; border: none; }
   .proc-steps li.done .step-icon::after { content: "✓"; }
 
   @keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 
-<!-- Importmap for the 3 SOTA libraries -->
 <script type="importmap">
 {
   "imports": {
@@ -197,25 +204,39 @@
   <!-- Initial Boot Loader -->
   <div id="initLoader">
     <div class="init-box">
-      <h2>Initializing AI Models</h2>
-      <p>Downloading AI engines securely to your browser cache for 100% offline, private processing.</p>
+      <h2>Initializing AI</h2>
+      <p>Downloading local models for 100% private offline processing.</p>
       <div class="progress-bg"><div id="initProgressBar" class="progress-bar"></div></div>
-      <div id="initMbText">0.0 / 0.0 MB</div>
+      <div id="initMbText" style="font-size: 12px; font-weight: 600;">0.0 / 0.0 MB</div>
     </div>
   </div>
 
-  <div class="header-area">
-    <h1>AI Passport Photo Maker</h1>
-    <div class="privacy-badge">🔒 Local Processing Only: No images are uploaded to any server.</div>
-    <div class="feature-list">
-      <span>Background Removal</span>
-      <span>Auto Face Leveling & Sizing</span>
-      <span>Passport/Visa Photo Guidelines</span>
-      <span>Download 4x6" for Print</span>
-    </div>
-  </div>
+  <!-- Compact App Header -->
+  <header class="app-header">
+    <h1>🛂 Passport AI</h1>
+    <div class="privacy-badge">🔒 100% Local Processing</div>
+  </header>
 
   <div class="container">
+    
+    <!-- CANVAS PANEL (Sticks to top on Mobile) -->
+    <div class="panel canvas-panel">
+      <div id="statusText" style="font-size:13px; color:var(--text-muted); margin-bottom: 10px; font-weight: 500;">Waiting for image...</div>
+      
+      <canvas id="canvas" width="600" height="600"></canvas>
+      
+      <p style="color: var(--text-muted); margin-top: 15px; margin-bottom: 0; font-size: 12px; text-align: center;">
+        <span style="color: #3b82f6; font-weight:600;">Blue:</span> Eye Zone | 
+        <span style="color: #32ff00; font-weight:600;">Green:</span> Hair | 
+        <span style="color: #ff9500; font-weight:600;">Orange:</span> Chin<br>
+        <span style="color: #00e5ff; font-weight:600;">Cyan:</span> Pupils | 
+        <span style="color: #ff00d6; font-weight:600;">Magenta:</span> Nose<br>
+        <span style="color: #eab308; font-weight:600;">Yellow:</span> True Ear | 
+        <span style="color: #a855f7; font-weight:600;">Purple:</span> Body Edge
+      </p>
+    </div>
+
+    <!-- CONTROLS PANEL -->
     <div class="panel controls">
       <div class="topbar">
         <button id="uploadBtn" class="primary" disabled>Upload Photo</button>
@@ -229,73 +250,56 @@
         <span id="headVal">59%</span>
       </div>
 
-      <div style="text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; font-weight: 500;">Fine Placement (1px per tap)</div>
+      <div style="text-align: center; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">1px Fine Placement (Drag Canvas)</div>
       <div class="nudge-cross">
-        <div class="blank"></div>
-        <button id="nUp" disabled>↑</button>
-        <div class="blank"></div>
-        <button id="nLeft" disabled>←</button>
-        <div class="blank"></div>
-        <button id="nRight" disabled>→</button>
-        <div class="blank"></div>
-        <button id="nDown" disabled>↓</button>
-        <div class="blank"></div>
-      </div>
-      <p style="text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 0; margin-bottom: 20px;">(Or click & drag canvas directly)</p>
-
-      <div class="checkbox-row">
-        <input type="checkbox" id="gridToggle" disabled>
-        <label for="gridToggle">Show 16x16 Reference Grid</label>
+        <div class="blank"></div><button id="nUp" disabled>↑</button><div class="blank"></div>
+        <button id="nLeft" disabled>←</button><div class="blank"></div><button id="nRight" disabled>→</button>
+        <div class="blank"></div><button id="nDown" disabled>↓</button><div class="blank"></div>
       </div>
 
-      <div class="feedback">
-        <h3>Compliance Checklist</h3>
-        <ul id="checklist"><li style="color: var(--text-muted);">Awaiting image upload...</li></ul>
+      <div class="feedback" style="border-top: none; margin-top: 20px;">
+        <div class="section-title">Compliance Checklist</div>
+        <ul id="checklist" class="checklist"><li style="color: var(--text-muted);">Awaiting image upload...</li></ul>
         <div id="overallStatus" style="color: var(--text-muted);">Status: Pending</div>
       </div>
         
       <div class="feedback">
-        <h3>Image Metrics</h3>
-        <ul class="metrics-list" id="metricsList">
-            <li id="metRot">Iris-Level Rotation: -</li>
-            <li id="metNose">Nose offset from center: -</li>
-            <li id="metBodyLeft">Space left of Visible Body: -</li>
-            <li id="metBodyRight">Space right of Visible Body: -</li>
-            <li id="metHeadLeft">Space left of True Ear/Head: -</li>
-            <li id="metHeadRight">Space right of True Ear/Head: -</li>
-            <li id="metParseMode" style="margin-top: 8px; font-style: italic; color: #a855f7;">Mode: -</li>
+        <div class="section-title" style="display: flex; justify-content: space-between; align-items: flex-end;">
+          Image Metrics 
+          <span id="metParseMode" style="font-size: 10px; font-style: italic; color: #a855f7; font-weight: normal;">Mode: -</span>
+        </div>
+        <ul class="metrics-grid" id="metricsList">
+            <li>Rotation <strong id="metRot">-</strong></li>
+            <li>Nose Offset <strong id="metNose">-</strong></li>
+            <li>Vis Body Left <strong id="metBodyLeft">-</strong></li>
+            <li>Vis Body Right <strong id="metBodyRight">-</strong></li>
+            <li>True Head Left <strong id="metHeadLeft">-</strong></li>
+            <li>True Head Right <strong id="metHeadRight">-</strong></li>
         </ul>
       </div>
-
-      <div class="feedback" style="padding-bottom: 0; border-bottom: none;">
-        <button id="dlDigitalBtn" class="dl-btn" disabled>Download Digital (2x2")</button>
-        <button id="dlPrintBtn" class="dl-btn" style="background: var(--accent);" disabled>Download 4x6" for Print</button>
-      </div>
-    </div>
-
-    <div class="panel" style="display: flex; flex-direction: column; align-items: center;">
-      <canvas id="canvas" width="600" height="600"></canvas>
-      <p style="text-align: center; color: var(--text-muted); margin-top: 15px; font-size: 13px; line-height: 1.6;">
-        Canvas rendered internally at exactly <b>600x600 px</b> (2"x2" @ 300dpi).<br>
-        <span style="color: #3b82f6; font-weight: 600;">Blue Dotted:</span> Required Eye Zone<br>
-        <span style="color: #32ff00; font-weight: 600;">Green:</span> Hair | <span style="color: #ff9500; font-weight: 600;">Orange:</span> Chin | <span style="color: #00e5ff; font-weight: 600;">Cyan:</span> Eyes (Pupils)<br>
-        <span style="color: #ff00d6; font-weight: 600;">Magenta:</span> Nose | <span style="color: #eab308; font-weight: 600;">Yellow:</span> True Ear Edges | <span style="color: #a855f7; font-weight: 600;">Purple:</span> Visible Body
-      </p>
     </div>
   </div>
 
+  <!-- Footer -->
   <div class="footer">
     Powered by in-browser ML: Img.ly Background Removal, Google MediaPipe, and Transformers.js.
+  </div>
+
+  <!-- Sticky Bottom Action Bar -->
+  <div class="bottom-bar">
+    <button id="dlDigitalBtn" class="dl-btn" disabled>Save 2x2" Digital</button>
+    <button id="dlPrintBtn" class="dl-btn" style="background: var(--accent);" disabled>Save 4x6" Print</button>
   </div>
 
   <!-- Processing Glassmorphism Loader -->
   <div id="procLoader">
     <div class="proc-box">
-      <h3>Processing Image</h3>
+      <h3 style="margin:0 0 5px; font-size:16px; text-align: center;">Analyzing Biometrics</h3>
+      <div id="loaderText" style="font-size:12px; color:var(--text-muted); text-align:center;">Please wait...</div>
       <ul class="proc-steps">
-        <li id="step1"><div class="step-icon"></div> Removing Background</li>
-        <li id="step2"><div class="step-icon"></div> Mapping Facial Geometry</li>
-        <li id="step3"><div class="step-icon"></div> Isolating True Ear Edges</li>
+        <li id="step1"><div class="step-icon"></div> Background Removal</li>
+        <li id="step2"><div class="step-icon"></div> Facial Geometry</li>
+        <li id="step3"><div class="step-icon"></div> Ear Cartilage</li>
       </ul>
     </div>
   </div>
@@ -311,11 +315,11 @@ const resetBtn     = document.getElementById('resetBtn');
 const fileInput    = document.getElementById('fileInput');
 const canvas       = document.getElementById('canvas');
 const ctx          = canvas.getContext('2d');
+const statusText   = document.getElementById('statusText');
 const headSlider   = document.getElementById('headSlider');
 const headVal      = document.getElementById('headVal');
 const checklist    = document.getElementById('checklist');
 const overallStatus= document.getElementById('overallStatus');
-const gridToggle   = document.getElementById('gridToggle');
 const btnUp        = document.getElementById('nUp'), btnDown = document.getElementById('nDown');
 const btnLeft      = document.getElementById('nLeft'), btnRight = document.getElementById('nRight');
 
@@ -324,6 +328,7 @@ const initProgressBar = document.getElementById('initProgressBar');
 const initMbText      = document.getElementById('initMbText');
 
 const procLoader = document.getElementById('procLoader');
+const loaderText = document.getElementById('loaderText');
 const step1 = document.getElementById('step1');
 const step2 = document.getElementById('step2');
 const step3 = document.getElementById('step3');
@@ -361,20 +366,15 @@ let srcOuterRMap =[];
 let imgRotationDeg = 0; 
 let headPct  = 59;
 let nudgeX = 0, nudgeY = 0;
-let showGrid = false;
 
 let taskTotalBytes = 0, taskDoneBytes = 0;
 let imglyTotalBytes = 22 * 1024 * 1024, imglyDoneBytes = 0;
 let taskArrayBuffer = null;
 
-// ── Init Pipeline ────────────────────────────────────────────────────────────
 function updateInitProgress() {
   const tot = taskTotalBytes + imglyTotalBytes;
   let don = taskDoneBytes + imglyDoneBytes;
-  
-  // Math Clamp to prevent UI jumping backwards
   if (don > tot && tot > 0) don = tot;
-  
   const pct = tot > 0 ? Math.min(100, Math.round(don / tot * 100)) : 0;
   initProgressBar.style.width = pct + '%';
   initMbText.textContent = `${(don/1048576).toFixed(1)} / ${(tot/1048576).toFixed(1)} MB`;
@@ -382,7 +382,6 @@ function updateInitProgress() {
 
 async function preloadAI() {
   try {
-    // 1. MediaPipe Download
     const head = await fetch(TASK_URL, { method: 'HEAD' }).catch(()=>null);
     if (head && head.headers.get('Content-Length')) taskTotalBytes = parseInt(head.headers.get('Content-Length'), 10);
     updateInitProgress();
@@ -401,7 +400,6 @@ async function preloadAI() {
     for (const c of chunks) { buf.set(c, off); off += c.byteLength; }
     taskDoneBytes = buf.length; taskArrayBuffer = buf.buffer;
 
-    // 2. Img.ly Download Caching
     await removeBackground(new Blob(['x'], { type: 'image/png' }), {
       model: 'isnet_fp16', output: { format: 'image/png' },
       progress: (k, curr, tot) => {
@@ -412,37 +410,33 @@ async function preloadAI() {
     }).catch(() => {});
     imglyDoneBytes = imglyTotalBytes; updateInitProgress();
 
-    // 3. Mount MediaPipe
     const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
     faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
       baseOptions: { modelAssetBuffer: new Uint8Array(taskArrayBuffer), delegate: 'GPU' },
       runningMode: 'IMAGE', numFaces: 1
     });
 
-    // 4. Try mounting Transformers.js Face Parsing
     try {
         env.allowLocalModels = false;
         faceParser = await pipeline('image-segmentation', 'Xenova/face-parsing');
         console.log("Transformers.js Semantic Face Parsing Loaded Successfully.");
     } catch(e) {
-        console.warn("Face Parsing Semantic Model failed to load (CDN issue or missing weights). Falling back to Skin-Tone Raycast heuristic.");
+        console.warn("Face Parsing failed to load. Falling back to Skin-Tone Raycast.");
         faceParseFallback = true;
     }
 
     modelsReady = true;
     uploadBtn.disabled = false;
     
-    // Fade out loader
     initLoader.style.opacity = '0';
     setTimeout(() => initLoader.style.display = 'none', 400);
-
+    statusText.innerHTML = '<span style="color:var(--ok);">✓ Ready. Upload a photo.</span>';
   } catch (err) {
     initLoader.innerHTML = `<div class="init-box"><h2 style="color:var(--bad)">Error Loading AI</h2><p>${err.message}</p></div>`;
   }
 }
 preloadAI();
 
-// ── Math & Layout ────────────────────────────────────────────────────────────
 function computeLayout() {
     const targetHeadPx = (headPct / 100) * C;
     const srcHeadPx    = srcChinY - srcHairY;
@@ -470,7 +464,6 @@ function updateFeedback(drawX, drawY, scale, restricted, outerLX, outerRX, headL
     const noseX = drawX + srcNoseX * scale;
 
     const headRatio = (chinY - headY) / C;
-    // Strict Javascript floating-point fix for compliance
     const isHeadValid = headRatio.toFixed(2) >= 0.50 && headRatio.toFixed(2) <= 0.68;
     const isEyeValid  = eyeY >= EYE_ZONE_TOP && eyeY <= EYE_ZONE_BOT;
     const isNoseValid = Math.abs(noseX - C/2) <= 15;
@@ -491,23 +484,25 @@ function updateFeedback(drawX, drawY, scale, restricted, outerLX, outerRX, headL
     if (isHeadValid && isEyeValid && isNoseValid) {
         overallStatus.textContent = '✅ Compliant Passport Photo';
         overallStatus.style.color = 'var(--ok)';
+        overallStatus.style.background = 'rgba(16, 185, 129, 0.1)';
     } else {
         overallStatus.textContent = '❌ Non-Compliant';
         overallStatus.style.color = 'var(--bad)';
+        overallStatus.style.background = 'rgba(239, 68, 68, 0.1)';
     }
 
     const rotVal = parseFloat(imgRotationDeg);
-    metRot.textContent = `Iris-Level Rotation: ${rotVal > 0 ? '+' : ''}${imgRotationDeg}°`;
+    metRot.textContent = `${rotVal > 0 ? '+' : ''}${imgRotationDeg}°`;
     
     const noseOffset = Math.round(noseX - (C / 2));
-    metNose.textContent = `Nose offset from center: ${noseOffset > 0 ? '+' : ''}${noseOffset} px`;
+    metNose.textContent = `${noseOffset > 0 ? '+' : ''}${noseOffset} px`;
     
-    metBodyLeft.textContent = `Space left of Visible Body: ${Math.round(outerLX)} px`;
-    metBodyRight.textContent = `Space right of Visible Body: ${Math.round(C - outerRX)} px`;
-    metHeadLeft.textContent = `Space left of True Ear/Head: ${Math.round(headLX)} px`;
-    metHeadRight.textContent = `Space right of True Ear/Head: ${Math.round(C - headRX)} px`;
+    metBodyLeft.textContent = `${Math.round(outerLX)} px`;
+    metBodyRight.textContent = `${Math.round(C - outerRX)} px`;
+    metHeadLeft.textContent = `${Math.round(headLX)} px`;
+    metHeadRight.textContent = `${Math.round(C - headRX)} px`;
     
-    metParseMode.textContent = faceParseFallback ? "Ear Detection Mode: Skin-Tone Raycast (Fallback)" : "Ear Detection Mode: Semantic Segmentation AI (SOTA)";
+    metParseMode.textContent = faceParseFallback ? "Fallback Scanner" : "Semantic AI";
 }
 
 function drawToContext(targetCtx, withGuides) {
@@ -520,18 +515,6 @@ function drawToContext(targetCtx, withGuides) {
     targetCtx.drawImage(srcImage, drawX, drawY, srcImage.width * scale, srcImage.height * scale);
 
     if (withGuides) {
-        if (showGrid) {
-            targetCtx.save();
-            targetCtx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-            targetCtx.lineWidth = 1;
-            const step = C / 16;
-            for (let i = 1; i < 16; i++) {
-                targetCtx.beginPath(); targetCtx.moveTo(i * step, 0); targetCtx.lineTo(i * step, C); targetCtx.stroke();
-                targetCtx.beginPath(); targetCtx.moveTo(0, i * step); targetCtx.lineTo(C, i * step); targetCtx.stroke();
-            }
-            targetCtx.restore();
-        }
-
         const headY = drawY + srcHairY * scale;
         const chinY = drawY + srcChinY * scale;
         const eyeY  = drawY + srcEyeY * scale;
@@ -539,7 +522,6 @@ function drawToContext(targetCtx, withGuides) {
         const headLX = drawX + srcHeadLX * scale;
         const headRX = drawX + srcHeadRX * scale;
 
-        // Dynamic Visible Body Edge Lookup
         let visibleLeft = srcImage.width, visibleRight = 0;
         if (srcOuterLMap && srcOuterLMap.length > 0) {
             let startY = Math.max(0, Math.floor(-drawY / scale));
@@ -557,45 +539,26 @@ function drawToContext(targetCtx, withGuides) {
         targetCtx.save();
         targetCtx.font = '12px system-ui, sans-serif';
         
-        // Eye Zone
         targetCtx.setLineDash([6, 5]); targetCtx.lineWidth = 2; targetCtx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
         targetCtx.beginPath(); targetCtx.moveTo(0, EYE_ZONE_TOP); targetCtx.lineTo(C, EYE_ZONE_TOP); targetCtx.stroke();
         targetCtx.beginPath(); targetCtx.moveTo(0, EYE_ZONE_BOT); targetCtx.lineTo(C, EYE_ZONE_BOT); targetCtx.stroke();
-        targetCtx.fillStyle = 'rgba(59, 130, 246, 0.9)'; targetCtx.textBaseline = 'bottom';
-        targetCtx.fillText('Eye Max', 5, EYE_ZONE_TOP - 3); targetCtx.fillText('Eye Min', 5, EYE_ZONE_BOT - 3);
 
-        // Landmarks
         targetCtx.setLineDash([]); targetCtx.lineWidth = 1.5; targetCtx.textBaseline = 'bottom';
-        targetCtx.strokeStyle = '#32ff00'; targetCtx.fillStyle = '#32ff00'; 
-        targetCtx.beginPath(); targetCtx.moveTo(0, headY); targetCtx.lineTo(C, headY); targetCtx.stroke();
-        targetCtx.fillText('Top of Hair', 5, headY - 3);
         
-        targetCtx.strokeStyle = '#ff9500'; targetCtx.fillStyle = '#ff9500'; 
-        targetCtx.beginPath(); targetCtx.moveTo(0, chinY); targetCtx.lineTo(C, chinY); targetCtx.stroke();
-        targetCtx.fillText('Chin', 5, chinY - 3);
+        targetCtx.strokeStyle = '#32ff00'; targetCtx.beginPath(); targetCtx.moveTo(0, headY); targetCtx.lineTo(C, headY); targetCtx.stroke();
+        targetCtx.strokeStyle = '#ff9500'; targetCtx.beginPath(); targetCtx.moveTo(0, chinY); targetCtx.lineTo(C, chinY); targetCtx.stroke();
+        targetCtx.strokeStyle = '#00e5ff'; targetCtx.beginPath(); targetCtx.moveTo(0, eyeY); targetCtx.lineTo(C, eyeY); targetCtx.stroke();
         
-        targetCtx.strokeStyle = '#00e5ff'; targetCtx.fillStyle = '#00e5ff'; 
-        targetCtx.beginPath(); targetCtx.moveTo(0, eyeY); targetCtx.lineTo(C, eyeY); targetCtx.stroke();
-        targetCtx.fillText('Eyes', 5, eyeY - 3);
-
         targetCtx.textBaseline = 'top';
-        targetCtx.strokeStyle = '#ff00d6'; targetCtx.fillStyle = '#ff00d6'; 
-        targetCtx.beginPath(); targetCtx.moveTo(noseX, 0); targetCtx.lineTo(noseX, C); targetCtx.stroke();
-        targetCtx.fillText('Nose', noseX + 4, 5);
-
-        // Body Edges (Purple)
-        targetCtx.strokeStyle = '#a855f7'; targetCtx.fillStyle = '#a855f7'; 
-        targetCtx.beginPath(); targetCtx.moveTo(outerLX, 0); targetCtx.lineTo(outerLX, C); targetCtx.stroke();
-        targetCtx.fillText('Vis Body L', outerLX + 4, 20);
-        targetCtx.beginPath(); targetCtx.moveTo(outerRX, 0); targetCtx.lineTo(outerRX, C); targetCtx.stroke();
-        targetCtx.textAlign = 'right'; targetCtx.fillText('Vis Body R', outerRX - 4, 20);
+        targetCtx.strokeStyle = '#ff00d6'; targetCtx.beginPath(); targetCtx.moveTo(noseX, 0); targetCtx.lineTo(noseX, C); targetCtx.stroke();
         
-        // Head Edges (Yellow)
-        targetCtx.textAlign = 'left'; targetCtx.strokeStyle = '#eab308'; targetCtx.fillStyle = '#eab308';
+        targetCtx.strokeStyle = '#a855f7'; 
+        targetCtx.beginPath(); targetCtx.moveTo(outerLX, 0); targetCtx.lineTo(outerLX, C); targetCtx.stroke();
+        targetCtx.beginPath(); targetCtx.moveTo(outerRX, 0); targetCtx.lineTo(outerRX, C); targetCtx.stroke();
+        
+        targetCtx.strokeStyle = '#eab308';
         targetCtx.beginPath(); targetCtx.moveTo(headLX, 0); targetCtx.lineTo(headLX, C); targetCtx.stroke();
-        targetCtx.fillText('True Ear/Head L', headLX + 4, 35);
         targetCtx.beginPath(); targetCtx.moveTo(headRX, 0); targetCtx.lineTo(headRX, C); targetCtx.stroke();
-        targetCtx.textAlign = 'right'; targetCtx.fillText('True Ear/Head R', headRX - 4, 35);
         targetCtx.restore();
 
         if (targetCtx === ctx) {
@@ -604,11 +567,8 @@ function drawToContext(targetCtx, withGuides) {
     }
 }
 
-function drawPassport() {
-    drawToContext(ctx, true);
-}
+function drawPassport() { drawToContext(ctx, true); }
 
-// ── Color Utilities for Fallback ─────────────────────────────────────────────
 function rgbToHsl(r, g, b) {
     r /= 255; g /= 255; b /= 255;
     let max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -623,7 +583,6 @@ function rgbToHsl(r, g, b) {
     return[h * 360, s * 100, l * 100];
 }
 
-// ── Image Processing Logic ───────────────────────────────────────────────────
 function resetLoaderUI() {
     step1.className = ''; step2.className = ''; step3.className = '';
     procLoader.classList.add('show');
@@ -638,17 +597,15 @@ fileInput.addEventListener('change', async (e) => {
     resetLoaderUI();
 
     try {
-        // Step 1: Remove BG
         step1.classList.add('active');
+        loaderText.textContent = 'Img.ly isnet_fp16...';
         const bgBlob = await removeBackground(file, { model: 'isnet_fp16', output: { format: 'image/png' } });
-        const img = new Image();
-        img.src = URL.createObjectURL(bgBlob);
-        await img.decode();
+        const img = new Image(); img.src = URL.createObjectURL(bgBlob); await img.decode();
         step1.classList.replace('active', 'done');
 
-        // Step 2: Facial Geometry & Eye Leveling
         step2.classList.add('active');
-        await new Promise(r => setTimeout(r, 10)); // UI paint yield
+        loaderText.textContent = 'MediaPipe Mesh...';
+        await new Promise(r => setTimeout(r, 10)); 
         
         const maxDim = 1200;
         const preScale = Math.min(1, maxDim / Math.max(img.width, img.height));
@@ -658,10 +615,9 @@ fileInput.addEventListener('change', async (e) => {
         const ctx1 = c1.getContext('2d'); ctx1.drawImage(img, 0, 0, pW, pH);
 
         const res1 = faceLandmarker.detect(c1);
-        if (!res1.faceLandmarks?.length) throw new Error("No face detected in photo. Please ensure the subject is facing the camera.");
+        if (!res1.faceLandmarks?.length) throw new Error("No face detected. Please ensure the subject is facing the camera.");
         const lm1 = res1.faceLandmarks[0];
         
-        // AUTO-ROTATE: Use Eye Irises (468, 473)
         const eye1 = lm1[468], eye2 = lm1[473];
         const eyeL1 = eye1.x < eye2.x ? eye1 : eye2; const eyeR1 = eye1.x < eye2.x ? eye2 : eye1;
         const angle = Math.atan2((eyeR1.y - eyeL1.y)*pH, (eyeR1.x - eyeL1.x)*pW);
@@ -673,7 +629,6 @@ fileInput.addEventListener('change', async (e) => {
         
         ctx2.translate(D/2, D/2); ctx2.rotate(-angle); ctx2.drawImage(c1, -pW/2, -pH/2);
 
-        // Geometric bottom edge fix
         const pData = ctx1.getImageData(0,0,pW,pH).data;
         let y_bottom = -1;
         for (let y = pH - 1; y >= 0; y--) {
@@ -694,16 +649,14 @@ fileInput.addEventListener('change', async (e) => {
         function mapToC2(x, y) { return (x - pW/2) * Math.sin(-angle) + (y - pH/2) * Math.cos(-angle) + D/2; }
         srcBottomY = Math.min(mapToC2(x_first !== -1 ? x_first : 0, y_bottom !== -1 ? y_bottom : pH), mapToC2(x_last !== -1 ? x_last : pW, y_bottom !== -1 ? y_bottom : pH));
 
-        // Second detect on upright canvas
         const c3 = document.createElement('canvas'); c3.width = D; c3.height = D;
         const ctx3 = c3.getContext('2d'); ctx3.fillStyle = '#fff'; ctx3.fillRect(0,0,D,D); ctx3.drawImage(c2, 0, 0);
         const res2 = faceLandmarker.detect(c3);
         const lm2 = res2.faceLandmarks[0];
-
         step2.classList.replace('active', 'done');
 
-        // Step 3: Isolating Ear Cartilage
         step3.classList.add('active');
+        loaderText.textContent = 'Segmentation Scan...';
         await new Promise(r => setTimeout(r, 10));
 
         const pixels2 = ctx2.getImageData(0, 0, D, D).data;
@@ -724,7 +677,6 @@ fileInput.addEventListener('change', async (e) => {
 
         let headLeft = D, headRight = 0;
 
-        // --- TRIPLE THREAT: SEMANTIC EAR SEGMENTATION ---
         if (faceParser && !faceParseFallback) {
             const rotatedBlobUrl = c2.toDataURL("image/png");
             const parseResult = await faceParser(rotatedBlobUrl);
@@ -760,7 +712,6 @@ fileInput.addEventListener('change', async (e) => {
             }
         } 
         
-        // --- FALLBACK: SKIN-TONE RAYCAST ---
         if (headLeft === D || headRight === 0 || faceParseFallback) {
             faceParseFallback = true;
             const noseCX = Math.floor(lm2[1].x * D); const noseCY = Math.floor(lm2[1].y * D);
@@ -805,7 +756,6 @@ fileInput.addEventListener('change', async (e) => {
 
         step3.classList.replace('active', 'done');
 
-        // Finalize states
         srcImage = c2;
         srcHairY = hairTop !== -1 ? hairTop : (lm2[152].y - (lm2[152].y - lm2[1].y)*1.8)*D;
         srcChinY = lm2[152].y * D;
@@ -813,26 +763,24 @@ fileInput.addEventListener('change', async (e) => {
         srcNoseX = lm2[1].x * D;
         srcHeadLX = headLeft; srcHeadRX = headRight;
 
-        // Unlock UI
-        headSlider.disabled = false; resetBtn.disabled = false; gridToggle.disabled = false;
+        headSlider.disabled = false; resetBtn.disabled = false;
         btnUp.disabled = false; btnDown.disabled = false; btnLeft.disabled = false; btnRight.disabled = false;
         dlDigitalBtn.disabled = false; dlPrintBtn.disabled = false;
+        statusText.innerHTML = '<span style="color:var(--ok); font-weight: 600;">✓ Edit Photo Below</span>';
         
         document.getElementById('resetBtn').click();
         
-        // Remove loader smoothly
         setTimeout(() => { procLoader.classList.remove('show'); }, 500);
 
     } catch (err) {
         console.error(err);
         procLoader.classList.remove('show');
-        alert(err.message);
+        alert("Processing Error: " + err.message);
     } 
 });
 
 // ── Controls ─────────────────────────────────────────────────────────────────
 headSlider.addEventListener('input', (e) => { headPct = parseFloat(e.target.value); headVal.textContent = headPct.toFixed(1) + '%'; nudgeX = 0; nudgeY = 0; drawPassport(); });
-gridToggle.addEventListener('change', () => { drawPassport(); });
 resetBtn.addEventListener('click', () => { headSlider.value = 59; headPct = 59; headVal.textContent = '59%'; nudgeX = 0; nudgeY = 0; drawPassport(); });
 
 function applyNudge(dx, dy) { nudgeX += dx; nudgeY += dy; drawPassport(); }
@@ -855,88 +803,62 @@ canvas.addEventListener('pointerup', () => isDragging = false); canvas.addEventL
 // ── Download Logic ───────────────────────────────────────────────────────────
 function triggerDownload(dataUrl, filename) {
     const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = dataUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// Single Digital
 dlDigitalBtn.addEventListener('click', () => {
     if (!srcImage) return;
-    const offCanvas = document.createElement('canvas');
-    offCanvas.width = 600; offCanvas.height = 600;
+    const offCanvas = document.createElement('canvas'); offCanvas.width = 600; offCanvas.height = 600;
     const offCtx = offCanvas.getContext('2d');
     drawToContext(offCtx, false); 
     triggerDownload(offCanvas.toDataURL("image/jpeg", 1.0), 'passport_2x2_digital.jpg');
 });
 
-// 4x6 Print Sheet (White Background + 2 Photos + Cut Lines)
 dlPrintBtn.addEventListener('click', () => {
     if (!srcImage) return;
     
-    const passCanvas = document.createElement('canvas');
-    passCanvas.width = 600; passCanvas.height = 600;
+    const passCanvas = document.createElement('canvas'); passCanvas.width = 600; passCanvas.height = 600;
     const passCtx = passCanvas.getContext('2d');
     drawToContext(passCtx, false); 
     
-    const printCanvas = document.createElement('canvas');
-    printCanvas.width = 1200; printCanvas.height = 1800;
+    const printCanvas = document.createElement('canvas'); printCanvas.width = 1200; printCanvas.height = 1800;
     const printCtx = printCanvas.getContext('2d');
     
-    // Fill White Background
-    printCtx.fillStyle = '#ffffff';
-    printCtx.fillRect(0, 0, 1200, 1800);
+    printCtx.fillStyle = '#f5f5dc'; printCtx.fillRect(0, 0, 1200, 1800);
+    printCtx.drawImage(passCanvas, 300, 150); printCtx.drawImage(passCanvas, 300, 1050);
+
+    printCtx.strokeStyle = 'rgba(0, 0, 0, 0.4)'; printCtx.lineWidth = 2; printCtx.setLineDash([15, 10]);
+    function drawCutGuide(x1, y1, x2, y2) { printCtx.beginPath(); printCtx.moveTo(x1, y1); printCtx.lineTo(x2, y2); printCtx.stroke(); }
+
+    const gap = 5; const img1Y = 150, img2Y = 1050; const leftX = 300, rightX = 900;
+
+    drawCutGuide(0, img1Y, leftX - gap, img1Y); 
+    drawCutGuide(1200, img1Y, rightX + gap, img1Y); 
+    drawCutGuide(leftX, 0, leftX, img1Y - gap); 
+    drawCutGuide(rightX, 0, rightX, img1Y - gap); 
     
-    // Draw images (centered horizontally, stacked vertically)
-    printCtx.drawImage(passCanvas, 300, 150);
-    printCtx.drawImage(passCanvas, 300, 1050);
+    drawCutGuide(0, img1Y + 600, leftX - gap, img1Y + 600); 
+    drawCutGuide(1200, img1Y + 600, rightX + gap, img1Y + 600); 
+    drawCutGuide(leftX, img1Y + 600 + gap, leftX, img1Y + 600 + 150); 
+    drawCutGuide(rightX, img1Y + 600 + gap, rightX, img1Y + 600 + 150); 
 
-    // Draw Cut Guides
-    printCtx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    printCtx.lineWidth = 2;
-    printCtx.setLineDash([15, 10]);
-
-    function drawCutGuide(x1, y1, x2, y2) {
-        printCtx.beginPath();
-        printCtx.moveTo(x1, y1);
-        printCtx.lineTo(x2, y2);
-        printCtx.stroke();
-    }
-
-    const gap = 15; // Safe gap from photo edge
-    const img1Y = 150, img2Y = 1050;
-    const leftX = 300, rightX = 900;
-
-    // --- Image 1 (Top) ---
-    drawCutGuide(0, img1Y, leftX - gap, img1Y); // Top-Left Horiz
-    drawCutGuide(1200, img1Y, rightX + gap, img1Y); // Top-Right Horiz
-    drawCutGuide(leftX, 0, leftX, img1Y - gap); // Top-Left Vert
-    drawCutGuide(rightX, 0, rightX, img1Y - gap); // Top-Right Vert
+    drawCutGuide(0, img2Y, leftX - gap, img2Y); 
+    drawCutGuide(1200, img2Y, rightX + gap, img2Y); 
+    drawCutGuide(leftX, img2Y - 150, leftX, img2Y - gap); 
+    drawCutGuide(rightX, img2Y - 150, rightX, img2Y - gap); 
     
-    drawCutGuide(0, img1Y + 600, leftX - gap, img1Y + 600); // Bot-Left Horiz
-    drawCutGuide(1200, img1Y + 600, rightX + gap, img1Y + 600); // Bot-Right Horiz
-    drawCutGuide(leftX, img1Y + 600 + gap, leftX, img1Y + 600 + 150); // Bot-Left Vert 
-    drawCutGuide(rightX, img1Y + 600 + gap, rightX, img1Y + 600 + 150); // Bot-Right Vert 
-
-    // --- Image 2 (Bottom) ---
-    drawCutGuide(0, img2Y, leftX - gap, img2Y); // Top-Left Horiz
-    drawCutGuide(1200, img2Y, rightX + gap, img2Y); // Top-Right Horiz
-    drawCutGuide(leftX, img2Y - 150, leftX, img2Y - gap); // Top-Left Vert 
-    drawCutGuide(rightX, img2Y - 150, rightX, img2Y - gap); // Top-Right Vert
-    
-    drawCutGuide(0, img2Y + 600, leftX - gap, img2Y + 600); // Bot-Left Horiz
-    drawCutGuide(1200, img2Y + 600, rightX + gap, img2Y + 600); // Bot-Right Horiz
-    drawCutGuide(leftX, img2Y + 600 + gap, leftX, 1800); // Bot-Left Vert 
-    drawCutGuide(rightX, img2Y + 600 + gap, rightX, 1800); // Bot-Right Vert
+    drawCutGuide(0, img2Y + 600, leftX - gap, img2Y + 600); 
+    drawCutGuide(1200, img2Y + 600, rightX + gap, img2Y + 600); 
+    drawCutGuide(leftX, img2Y + 600 + gap, leftX, 1800); 
+    drawCutGuide(rightX, img2Y + 600 + gap, rightX, 1800); 
 
     triggerDownload(printCanvas.toDataURL("image/jpeg", 1.0), 'passport_4x6_print.jpg');
 });
 
 drawPassport();
-
 </script>
+
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -946,5 +868,6 @@ drawPassport();
     });
   }
 </script>
+
 </body>
 </html>
