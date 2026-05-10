@@ -1175,37 +1175,7 @@ fileInput.addEventListener('change', async (e) => {
         const ctx2 = c2.getContext('2d', { willReadFrequently: true });
         ctx2.translate(D / 2, D / 2); ctx2.rotate(-angle); ctx2.drawImage(c1, -pW / 2, -pH / 2);
 
-        // Find bottom of subject in original (pre-rotation) canvas
-        const pData = ctx1.getImageData(0, 0, pW, pH).data;
-        let y_bottom = -1;
-        for (let y = pH - 1; y >= 0; y--) {
-            for (let x = 0; x < pW; x++) {
-                if (pData[(y * pW + x) * 4 + 3] > 20) { y_bottom = y; break; }
-            }
-            if (y_bottom !== -1) break;
-        }
-        let x_first = -1, x_last = -1;
-        if (y_bottom !== -1) {
-            for (let y = y_bottom; y >= Math.max(0, y_bottom - 10); y--) {
-                for (let x = 0; x < pW; x++) {
-                    if (pData[(y * pW + x) * 4 + 3] > 20) {
-                        if (x_first === -1 || x < x_first) x_first = x;
-                        if (x_last  === -1 || x > x_last)  x_last  = x;
-                    }
-                }
-            }
-        }
-
-        // FIX #1 (mapToC2) + FIX #2 (Math.max not min):
-        // Map a point from c1 space into the Y-coordinate in rotated c2 space.
-        function mapToC2Y(x, y) {
-            return -(x - pW / 2) * Math.sin(angle) + (y - pH / 2) * Math.cos(angle) + D / 2;
-        }
-        // FIX #2: use Math.max to get the *lowest* point (largest Y = bottom of canvas)
-        srcBottomY = Math.max(
-            mapToC2Y(x_first !== -1 ? x_first : 0,  y_bottom !== -1 ? y_bottom : pH),
-            mapToC2Y(x_last  !== -1 ? x_last  : pW, y_bottom !== -1 ? y_bottom : pH)
-        );
+        // srcBottomY is derived from the rotated pixel scan below.
 
         await setLoaderText('Verifying face after rotation…');
 
@@ -1221,6 +1191,7 @@ fileInput.addEventListener('change', async (e) => {
 
         const pixels2 = ctx2.getImageData(0, 0, D, D).data;
         let hairTop = -1;
+        srcBottomY = 0;
 
         srcOuterLMap = new Int32Array(D).fill(D);
         srcOuterRMap = new Int32Array(D).fill(0);
@@ -1229,6 +1200,7 @@ fileInput.addEventListener('change', async (e) => {
             for (let x = 0; x < D; x++) {
                 if (pixels2[(y * D + x) * 4 + 3] > 20) {
                     if (hairTop === -1) hairTop = y;
+                    srcBottomY = y; // last row with a visible pixel = true bottom
                     if (x < srcOuterLMap[y]) srcOuterLMap[y] = x;
                     if (x > srcOuterRMap[y]) srcOuterRMap[y] = x;
                 }
@@ -1360,7 +1332,7 @@ fileInput.addEventListener('change', async (e) => {
 headSlider.addEventListener('input', (e) => {
     headPct = parseFloat(e.target.value);
     headVal.textContent = headPct.toFixed(1) + '%';
-    // nudgeX / nudgeY intentionally NOT reset here — preserves user positioning
+    nudgeX = 0; nudgeY = 0;
     drawPassport();
 });
 
