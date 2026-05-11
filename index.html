@@ -832,50 +832,56 @@ function updateInitProgress() {
 // ── AI Init ───────────────────────────────────────────────────────────────────
 async function preloadAI() {
     try {
-        const head = await fetch(TASK_URL, { method: 'HEAD' }).catch(() => null);
-        if (head && head.headers.get('Content-Length'))
-            taskTotalBytes = parseInt(head.headers.get('Content-Length'), 10);
-        updateInitProgress();
+        // Run all three model setups CONCURRENTLY to drastically speed up loading
+        await Promise.all([
+            // 1. Mediapipe Task (Face Landmarker)
+            (async () => {
+                const resp = await fetch(TASK_URL);
+                taskTotalBytes = parseInt(resp.headers.get('Content-Length') || '0', 10);
+                const reader = resp.body.getReader();
+                const chunks = [];
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    taskDoneBytes += value.byteLength;
+                    updateInitProgress();
+                }
+                
+                // Combine chunks into ArrayBuffer using Blob (much faster & less memory than loops)
+                taskArrayBuffer = await new Blob(chunks).arrayBuffer();
+                
+                const vision = await FilesetResolver.forVisionTasks(
+                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+                );
+                faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: { modelAssetBuffer: new Uint8Array(taskArrayBuffer), delegate: 'GPU' },
+                    runningMode: 'IMAGE', numFaces: 1
+                });
+            })(),
 
-        const resp   = await fetch(TASK_URL);
-        const reader = resp.body.getReader();
-        const chunks =[];
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            taskDoneBytes += value.byteLength;
-            updateInitProgress();
-        }
-        const buf = new Uint8Array(chunks.reduce((s, c) => s + c.byteLength, 0));
-        let off = 0;
-        for (const c of chunks) { buf.set(c, off); off += c.byteLength; }
-        taskDoneBytes = buf.length; taskArrayBuffer = buf.buffer;
+            // 2. Imgly Background Removal (Warmup with a 1x1 blank pixel)
+            removeBackground(new ImageData(1, 1), {
+                model: 'isnet_fp16', 
+                output: { format: 'image/png' },
+                progress: (_, curr, tot) => {
+                    if (tot > 0) { imglyTotalBytes = tot; imglyDoneBytes = curr; }
+                    else imglyDoneBytes = Math.min(imglyDoneBytes + 256*1024, imglyTotalBytes * 0.95);
+                    updateInitProgress();
+                }
+            }).catch(() => {}),
 
-        await removeBackground(new Blob(['x'], { type: 'image/png' }), {
-            model: 'isnet_fp16', output: { format: 'image/png' },
-            progress: (_, curr, tot) => {
-                if (tot > 0) { imglyTotalBytes = tot; imglyDoneBytes = curr; }
-                else imglyDoneBytes = Math.min(imglyDoneBytes + 256*1024, imglyTotalBytes * 0.95);
-                updateInitProgress();
-            }
-        }).catch(() => {});
-        imglyDoneBytes = imglyTotalBytes; updateInitProgress();
-
-        const vision = await FilesetResolver.forVisionTasks(
-            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
-        );
-        faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-            baseOptions: { modelAssetBuffer: new Uint8Array(taskArrayBuffer), delegate: 'GPU' },
-            runningMode: 'IMAGE', numFaces: 1
-        });
-
-        try {
-            env.allowLocalModels = false;
-            faceParser = await pipeline('image-segmentation', 'Xenova/face-parsing');
-        } catch {
-            faceParseFallback = true;
-        }
+            // 3. Xenova Face Parser
+            (async () => {
+                try {
+                    env.allowLocalModels = false;
+                    faceParser = await pipeline('image-segmentation', 'Xenova/face-parsing');
+                } catch {
+                    faceParseFallback = true;
+                }
+            })()
+        ]);
 
         modelsReady = true;
         initLoader.style.opacity = '0';
@@ -1110,9 +1116,11 @@ function drawToContext(targetCtx, withGuides) {
     if (isAnimating && targetCtx === ctx) return false;
     
     if (!srcImage) {
-        targetCtx.fillStyle = '#f0ede8';
-        targetCtx.fillRect(0, 0, C, C);
-        targetCtx.fillStyle = '#d9d5cf';
+        // Clear canvas to let the CSS --canvas-bg show through (fixes dark mode)
+        targetCtx.clearRect(0, 0, C, C);
+        
+        // Draw the silhouette using a theme-agnostic semi-transparent gray
+        targetCtx.fillStyle = 'rgba(128, 130, 135, 0.25)';
         targetCtx.beginPath();
         targetCtx.arc(300, 225, 85, 0, Math.PI * 2);
         targetCtx.fill();
