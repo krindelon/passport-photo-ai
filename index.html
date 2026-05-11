@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- FIX #11: Removed user-scalable=no and maximum-scale=1 to allow zoom for accessibility -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Passport Photo Maker</title>
 <link rel="manifest" href="manifest.json">
@@ -67,7 +66,6 @@
     background: var(--bg); color: var(--text);
     font-family: var(--font-body);
     min-height: 100dvh;
-    /* FIX #12 (by design — kept): user-select on body is intentional for app-like feel */
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
@@ -141,14 +139,12 @@
     border: 1px solid var(--border);
     background: var(--canvas-bg);
     z-index: 20;
-    /* Success pulse animation */
     transition: box-shadow 0.4s ease;
   }
   .canvas-wrapper.all-ok {
     box-shadow: var(--shadow-lg), 0 0 0 2px var(--ok), 0 0 20px color-mix(in srgb, var(--ok) 25%, transparent);
   }
 
-  /* Guide overlay SVG sits on top of canvas, pointer-events none */
   #guideOverlay {
     position: absolute; inset: 0; width: 100%; height: 100%;
     pointer-events: none; z-index: 25;
@@ -171,12 +167,13 @@
     cursor: pointer;
     color: var(--text);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    padding: 0; transition: transform 0.15s, box-shadow 0.15s;
+    padding: 0; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
     box-shadow: var(--shadow-md);
     touch-action: none;
   }
-  .icon-btn:hover { transform: scale(1.08); box-shadow: var(--shadow-lg); }
-  .icon-btn:active { transform: scale(0.94); }
+  .icon-btn:hover:not(:disabled) { transform: scale(1.08); box-shadow: var(--shadow-lg); }
+  .icon-btn:active:not(:disabled) { transform: scale(0.94); }
+  .icon-btn:disabled { opacity: 0.4; pointer-events: none; }
   .icon-btn.top-left  { top: 10px; left: 10px; }
   .icon-btn.top-right { top: 10px; right: 10px; }
   .icon-btn svg { width: 16px; height: 16px; pointer-events: none; }
@@ -187,29 +184,28 @@
     background: var(--surface); color: var(--text-muted);
     border: 1px solid var(--border);
     display: none; align-items: center; justify-content: center;
-    cursor: pointer; transition: color 0.12s, background 0.12s, transform 0.1s;
+    cursor: pointer; transition: color 0.12s, background 0.12s, transform 0.1s, opacity 0.15s;
     touch-action: none;
   }
-  .dir-btn:hover  { color: var(--text); background: var(--bg); }
-  .dir-btn:active { background: var(--border); transform: scale(0.92); }
+  .dir-btn:hover:not(:disabled)  { color: var(--text); background: var(--bg); }
+  .dir-btn:active:not(:disabled) { background: var(--border); transform: scale(0.92); }
+  .dir-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
   .dir-btn svg    { width: 14px; height: 14px; pointer-events: none; }
 
   .dir-btn.up    { top: -24px; left: 50%; transform: translateX(-50%); width: 60px; height: 24px; border-radius: 6px 6px 0 0; border-bottom: none; }
   .dir-btn.down  { bottom: -24px; left: 50%; transform: translateX(-50%); width: 60px; height: 24px; border-radius: 0 0 6px 6px; border-top: none; }
   .dir-btn.left  { left: -24px; top: 50%; transform: translateY(-50%); width: 24px; height: 60px; border-radius: 6px 0 0 6px; border-right: none; }
   .dir-btn.right { right: -24px; top: 50%; transform: translateY(-50%); width: 24px; height: 60px; border-radius: 0 6px 6px 0; border-left: none; }
-  /* Override active on directional so they don't fight the translate */
-  .dir-btn.up:active    { transform: translateX(-50%) scale(0.92); }
-  .dir-btn.down:active  { transform: translateX(-50%) scale(0.92); }
-  .dir-btn.left:active  { transform: translateY(-50%) scale(0.92); }
-  .dir-btn.right:active { transform: translateY(-50%) scale(0.92); }
+  .dir-btn.up:active:not(:disabled)    { transform: translateX(-50%) scale(0.92); }
+  .dir-btn.down:active:not(:disabled)  { transform: translateX(-50%) scale(0.92); }
+  .dir-btn.left:active:not(:disabled)  { transform: translateY(-50%) scale(0.92); }
+  .dir-btn.right:active:not(:disabled) { transform: translateY(-50%) scale(0.92); }
 
   .dpad-wrapper.has-image .icon-btn,
   .dpad-wrapper.has-image .dir-btn { display: flex; }
   .dpad-wrapper.has-image #canvas  { cursor: grab; }
 
   /* ── Upload empty-state zone ─────────────────────────────── */
-  /* Overlaid on top of the silhouette canvas when no image yet */
   #uploadZone {
     position: absolute; inset: 0; z-index: 28;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -243,7 +239,6 @@
     display: flex; flex-direction: column; gap: 16px;
   }
 
-  /* Slider row */
   input[type="file"] { display: none; }
 
   .slider-group { display: flex; flex-direction: column; gap: 8px; }
@@ -253,7 +248,6 @@
   .slider-range-hint { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 
   .slider-track-wrapper { position: relative; height: 20px; display: flex; align-items: center; }
-  /* Range ticks for valid zone */
   .slider-zone {
     position: absolute;
     height: 6px; border-radius: 3px;
@@ -298,7 +292,6 @@
   .bad .check-icon { background: var(--bad); color: #fff; }
   .pending .check-icon { background: var(--border); color: var(--text-faint); }
 
-  /* Success callout */
   #successCallout {
     display: none;
     align-items: center; gap: 10px;
@@ -373,7 +366,7 @@
   .metrics-grid li span { color: var(--text-faint); font-size: 11px; letter-spacing: 0.2px; }
   .metrics-grid li strong { color: var(--text); font-weight: 500; }
 
-  /* ── Error Banner (replaces alert()) ───────────────────── */
+  /* ── Error Banner ───────────────────── */
   #errorBanner {
     display: none;
     margin: 0 16px;
@@ -464,7 +457,6 @@
   .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease; border-radius: 3px; }
   #initMbText   { font-size: 11px; font-weight: 600; font-family: var(--font-mono); color: var(--text-muted); }
 
-  /* procLoader uses opacity transition instead of display:none toggle */
   #procLoader {
     position: fixed; inset: 0;
     display: flex; align-items: center; justify-content: center;
@@ -520,7 +512,6 @@
   <!-- Initial Boot Loader -->
   <div id="initLoader">
     <div class="init-box">
-      <!-- Animated silhouette during load -->
       <svg class="init-silhouette" viewBox="0 0 64 80" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
         <circle cx="32" cy="22" r="16"/>
         <ellipse cx="32" cy="66" rx="28" ry="22"/>
@@ -548,7 +539,6 @@
       <div class="dpad-wrapper" id="dpadWrapper">
         <div class="canvas-wrapper" id="canvasWrapper">
 
-          <!-- Upload overlay (shown when no image) -->
           <div id="uploadZone" role="button" tabindex="0" aria-label="Upload photo">
             <div class="upload-icon">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -559,8 +549,6 @@
             <div class="upload-sub">JPG, PNG or WEBP · max 20 MB</div>
           </div>
 
-          <!-- Icon buttons (visible after upload) -->
-          <!-- FIX #19: aria-label added to all icon buttons -->
           <button id="uploadOverlay" class="icon-btn top-left" aria-label="Change photo">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
@@ -574,14 +562,9 @@
 
           <canvas id="canvas" width="600" height="600"></canvas>
 
-          <!-- SVG guide overlay on top of canvas — FIX #1 (visual separation of guides from output) -->
-          <svg id="guideOverlay" viewBox="0 0 600 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Lines injected by JS -->
-          </svg>
+          <svg id="guideOverlay" viewBox="0 0 600 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
 
-        <!-- D-Pad buttons -->
-        <!-- FIX #19: aria-labels on all directional buttons -->
         <button id="nUp"    class="dir-btn up"    aria-label="Move up">
           <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg>
         </button>
@@ -597,13 +580,11 @@
       </div>
     </div>
 
-    <!-- Hidden file input -->
     <input id="fileInput" type="file" accept="image/png, image/jpeg, image/webp">
 
     <!-- Controls Panel -->
     <div class="controls-panel">
 
-      <!-- Error Banner — FIX #20: replaces alert() -->
       <div id="errorBanner" role="alert">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
@@ -614,7 +595,6 @@
         </button>
       </div>
 
-      <!-- Head Size Slider — FIX #4: improved label with range hint -->
       <div class="slider-group">
         <div class="slider-header">
           <span class="slider-label">Head Size</span>
@@ -628,8 +608,6 @@
         </div>
       </div>
 
-      <!-- Checklist -->
-      <!-- FIX #9: success callout appears when all checks pass -->
       <div id="successCallout" role="status" aria-live="polite">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
@@ -646,45 +624,22 @@
         </ul>
       </div>
 
-      <!-- Guide Legend — FIX #7: explains coloured guide lines -->
       <div class="legend-wrap">
         <div class="legend-toggle" id="legendToggle" role="button" tabindex="0" aria-expanded="false">
           Guide Legend
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="legend-body" id="legendBody">
-          <div class="legend-item">
-            <div class="legend-swatch" style="background:#22c55e;"></div>
-            <span>Hair / top of head</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch" style="background:#f97316;"></div>
-            <span>Chin / bottom of face</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch" style="background:#06b6d4;"></div>
-            <span>Eye level</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch dashed" style="--swatch-color: rgba(59,130,246,0.7);"></div>
-            <span>Valid eye zone (1⅛″–1⅜″ from bottom)</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch" style="background:#e879f9;"></div>
-            <span>Nose centerline</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch" style="background:#a855f7;"></div>
-            <span>Body outer edge</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-swatch" style="background:#eab308;"></div>
-            <span>Head width (ear to ear)</span>
-          </div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#22c55e;"></div><span>Hair / top of head</span></div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#f97316;"></div><span>Chin / bottom of face</span></div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#06b6d4;"></div><span>Eye level</span></div>
+          <div class="legend-item"><div class="legend-swatch dashed" style="--swatch-color: rgba(59,130,246,0.7);"></div><span>Valid eye zone (1⅛″–1⅜″ from bottom)</span></div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#e879f9;"></div><span>Nose centerline</span></div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#a855f7;"></div><span>Body outer edge</span></div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#eab308;"></div><span>Head width (ear to ear)</span></div>
         </div>
       </div>
 
-      <!-- Metrics — now collapsible -->
       <div class="metrics-section">
         <div class="metrics-toggle" id="metricsToggle" role="button" tabindex="0" aria-expanded="false">
           Image Metrics
@@ -702,9 +657,9 @@
         </div>
       </div>
 
-    </div><!-- end controls-panel -->
+    </div>
 
-    <!-- Bottom Bar — FIX #2: primary / secondary hierarchy -->
+    <!-- Bottom Bar -->
     <div class="bottom-bar">
       <button id="dlDigitalBtn" class="dl-btn primary" disabled aria-label="Download 2x2 inch digital passport photo">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -720,12 +675,10 @@
       </button>
     </div>
 
-  </div><!-- end app-container -->
+  </div>
 
-  <!-- Toast (movement restriction notice) -->
   <div id="toastMsg" role="status" aria-live="polite"></div>
 
-  <!-- Processing Loader -->
   <div id="procLoader" role="status" aria-live="polite">
     <div class="proc-box">
       <h3>Making Passport Photo</h3>
@@ -804,12 +757,15 @@ let faceLandmarker     = null;
 let faceParser         = null;
 let faceParseFallback  = false;
 let modelsReady        = false;
+let isAnimating        = false;
 
 let srcImage   = null, srcHairY = 0, srcChinY = 0, srcEyeY = 0, srcNoseX = 0;
 let srcHeadLX  = 0, srcHeadRX = 0, srcBottomY = 0;
-let srcOuterLMap = [], srcOuterRMap = [];
+let srcOuterLMap =[], srcOuterRMap =[];
 
-// FIX #16: stored as number, not string
+// Base state for animations
+let appOrigImg = null, appC1 = null, appAngle = 0, appPw = 0, appPh = 0, appD = 0;
+
 let imgRotationDeg = 0;
 let headPct        = 59;
 let nudgeX         = 0, nudgeY = 0;
@@ -818,6 +774,16 @@ let taskTotalBytes  = 0, taskDoneBytes = 0;
 let imglyTotalBytes = 22 * 1024 * 1024, imglyDoneBytes = 0;
 let taskArrayBuffer = null;
 let toastTimeout    = null;
+
+// ── UI Control State ──────────────────────────────────────────────────────────
+function setControlsEnabled(enabled) {
+    headSlider.disabled = !enabled;
+    btnUp.disabled = !enabled; btnDown.disabled = !enabled;
+    btnLeft.disabled = !enabled; btnRight.disabled = !enabled;
+    dlDigitalBtn.disabled = !enabled; dlPrintBtn.disabled = !enabled;
+    resetOverlay.disabled = !enabled;
+    uploadOverlay.disabled = !enabled;
+}
 
 // ── Collapsible legend & metrics ──────────────────────────────────────────────
 function setupToggle(toggle, body) {
@@ -831,7 +797,7 @@ function setupToggle(toggle, body) {
 setupToggle(legendToggle, legendBody);
 setupToggle(metricsToggle, metricsBody);
 
-// ── Error banner (replaces alert) — FIX #20 ──────────────────────────────────
+// ── Error banner ──────────────────────────────────
 function showError(title, msg) {
     errorTitle.textContent = title;
     errorMsg.textContent   = msg;
@@ -873,7 +839,7 @@ async function preloadAI() {
 
         const resp   = await fetch(TASK_URL);
         const reader = resp.body.getReader();
-        const chunks = [];
+        const chunks =[];
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -921,6 +887,119 @@ async function preloadAI() {
 }
 preloadAI();
 
+// ── Intro Animation Sequence ──────────────────────────────────────────────────
+async function playIntroAnimation(origImg, c1, c2, rotAngle, pW, pH, D) {
+    return new Promise(resolve => {
+        const start = performance.now();
+        const durScan = 1500;
+        const durRot = 1000;
+        const durZoom = 1200;
+        const pause = 300;
+
+        const t1 = durScan;
+        const p1 = t1 + pause;
+        const t2 = p1 + durRot;
+        const p2 = t2 + pause;
+        const totalDuration = p2 + durZoom;
+
+        const outline = document.createElement('canvas');
+        outline.width = pW; outline.height = pH;
+        const oCtx = outline.getContext('2d');
+        oCtx.shadowColor = '#00ffff';
+        oCtx.shadowBlur = 15;
+        oCtx.drawImage(c1, 0, 0);
+        oCtx.drawImage(c1, 0, 0);
+        oCtx.shadowBlur = 0;
+        oCtx.globalCompositeOperation = 'destination-out';
+        oCtx.drawImage(c1, 0, 0);
+
+        const initAnimScale = Math.min(600 / pW, 600 / pH) * 0.85;
+        let finalDrawX, finalDrawY, finalScale;
+
+        function frame(now) {
+            let t = now - start;
+            if (t > totalDuration) t = totalDuration;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, C, C);
+
+            if (t <= p1) { // Scan & Background Removal + Pause
+                let p = Math.min(t / durScan, 1);
+                ctx.save();
+                ctx.translate(C/2, C/2);
+                ctx.scale(initAnimScale, initAnimScale);
+
+                let scanY = -pH/2 + pH * p;
+
+                // Draw origImg BELOW scanline
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(-pW/2, scanY, pW, pH/2 - scanY + 1);
+                ctx.clip();
+                ctx.drawImage(origImg, 0, 0, origImg.width, origImg.height, -pW/2, -pH/2, pW, pH);
+                ctx.restore();
+
+                // Draw c1 and outline ABOVE scanline
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(-pW/2, -pH/2, pW, scanY - (-pH/2));
+                ctx.clip();
+                ctx.drawImage(c1, -pW/2, -pH/2);
+                ctx.drawImage(outline, -pW/2, -pH/2);
+                ctx.restore();
+
+                // Glow line
+                if (p < 1) {
+                    ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+                    ctx.shadowColor = '#00ffff';
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(-pW/2, scanY - 2, pW, 4);
+                }
+                ctx.restore();
+            }
+            else if (t <= p2) { // Rotate + Pause
+                let p = Math.min((t - p1) / durRot, 1);
+                p = p * p * (3 - 2 * p);
+                let currentRot = -rotAngle * p;
+
+                ctx.save();
+                ctx.translate(C/2, C/2);
+                ctx.scale(initAnimScale, initAnimScale);
+                ctx.rotate(currentRot);
+                ctx.drawImage(c1, -pW/2, -pH/2);
+                ctx.restore();
+            }
+            else { // Zoom
+                let p = Math.min((t - p2) / durZoom, 1);
+                p = p * p * (3 - 2 * p);
+
+                if (finalScale === undefined) {
+                    const layout = computeLayout();
+                    finalDrawX = layout.drawX;
+                    finalDrawY = layout.drawY;
+                    finalScale = layout.scale;
+                }
+
+                let startDrawX = C/2 - (D/2) * initAnimScale;
+                let startDrawY = C/2 - (D/2) * initAnimScale;
+
+                let curX = startDrawX + (finalDrawX - startDrawX) * p;
+                let curY = startDrawY + (finalDrawY - startDrawY) * p;
+                let curS = initAnimScale + (finalScale - initAnimScale) * p;
+
+                ctx.drawImage(c2, curX, curY, D * curS, D * curS);
+            }
+
+            if (t < totalDuration) {
+                requestAnimationFrame(frame);
+            } else {
+                resolve();
+            }
+        }
+        requestAnimationFrame(frame);
+    });
+}
+
 // ── Math & Layout ─────────────────────────────────────────────────────────────
 function computeLayout() {
     const targetHeadPx = (headPct / 100) * C;
@@ -950,7 +1029,6 @@ function updateFeedback(drawX, drawY, scale, outerLX, outerRX, headLX, headRX) {
     const noseX = drawX + srcNoseX * scale;
 
     const headRatio = (chinY - headY) / C;
-    // FIX #4: compare as numbers, not strings
     const r = parseFloat(headRatio.toFixed(2));
     const isHeadValid = r >= 0.50 && r <= 0.68;
     const isEyeValid  = eyeY >= EYE_ZONE_TOP && eyeY <= EYE_ZONE_BOT;
@@ -972,12 +1050,9 @@ function updateFeedback(drawX, drawY, scale, outerLX, outerRX, headLX, headRX) {
     addCheck(`Eyes in valid zone (1⅛″–1⅜″ from bottom)`, isEyeValid);
     addCheck(`Nose centered horizontally`, isNoseValid);
 
-    // FIX #9: success callout
     successCallout.classList.toggle('show', allOk);
-    // Success pulse on canvas border
     canvasWrapper.classList.toggle('all-ok', allOk);
 
-    // FIX #16: imgRotationDeg is a number now
     metRot.textContent       = `${imgRotationDeg > 0 ? '+' : ''}${imgRotationDeg.toFixed(1)}°`;
     const noseOffset = Math.round(noseX - C / 2);
     metNose.textContent      = `${noseOffset >= 0 ? '+' : ''}${noseOffset} px`;
@@ -987,7 +1062,7 @@ function updateFeedback(drawX, drawY, scale, outerLX, outerRX, headLX, headRX) {
     metHeadRight.textContent = `${Math.round(C - headRX)} px`;
 }
 
-// ── Guide overlay rendering ── FIX #1 (SVG overlay separate from canvas) ─────
+// ── Guide overlay rendering ───────────────────────────────────────────────────
 function renderGuideOverlay(drawX, drawY, scale) {
     if (!srcImage) { guideOverlay.innerHTML = ''; return; }
 
@@ -1009,35 +1084,32 @@ function renderGuideOverlay(drawX, drawY, scale) {
     }
     if (visibleLeft === srcImage.width) { visibleLeft = 0; visibleRight = 0; }
 
-    const outerLX = drawX + visibleLeft  * scale;
-    const outerRX = drawX + visibleRight * scale;
+    const outerLX = Math.max(0, drawX + visibleLeft  * scale);
+    const outerRX = Math.min(C, drawX + visibleRight * scale);
 
     const line = (x1, y1, x2, y2, stroke, dash = '') =>
         `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="${dash}" vector-effect="non-scaling-stroke"/>`;
 
     guideOverlay.innerHTML =
-        // Eye zone dashed band
         line(0, EYE_ZONE_TOP, C, EYE_ZONE_TOP, 'rgba(59,130,246,0.65)', '6 5') +
         line(0, EYE_ZONE_BOT, C, EYE_ZONE_BOT, 'rgba(59,130,246,0.65)', '6 5') +
-        // Hair / chin / eye / nose
         line(0, headY, C, headY, '#22c55e') +
         line(0, chinY, C, chinY, '#f97316') +
         line(0, eyeY,  C, eyeY,  '#06b6d4') +
         line(noseX, 0, noseX, C, '#e879f9') +
-        // Body outer / head width
         line(outerLX, 0, outerLX, C, '#a855f7') +
         line(outerRX, 0, outerRX, C, '#a855f7') +
         line(headLX,  0, headLX,  C, '#eab308') +
         line(headRX,  0, headRX,  C, '#eab308');
 
-    // Update feedback metrics only on main canvas
     updateFeedback(drawX, drawY, scale, outerLX, outerRX, headLX, headRX);
 }
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawToContext(targetCtx, withGuides) {
+    if (isAnimating && targetCtx === ctx) return false;
+    
     if (!srcImage) {
-        // Empty state silhouette
         targetCtx.fillStyle = '#f0ede8';
         targetCtx.fillRect(0, 0, C, C);
         targetCtx.fillStyle = '#d9d5cf';
@@ -1057,7 +1129,6 @@ function drawToContext(targetCtx, withGuides) {
     targetCtx.drawImage(srcImage, drawX, drawY, srcImage.width * scale, srcImage.height * scale);
 
     if (withGuides && targetCtx === ctx) {
-        // FIX #1: guides go to SVG overlay, not drawn onto the canvas
         renderGuideOverlay(drawX, drawY, scale);
     }
 
@@ -1083,7 +1154,7 @@ function rgbToHsl(r, g, b) {
         }
         h /= 6;
     }
-    return [h * 360, s * 100, l * 100];
+    return[h * 360, s * 100, l * 100];
 }
 
 function resetLoaderUI() {
@@ -1097,21 +1168,20 @@ async function setLoaderText(text) {
 }
 
 // ── File input trigger ────────────────────────────────────────────────────────
-const triggerUpload = () => { if (modelsReady) fileInput.click(); };
+const triggerUpload = () => { if (modelsReady && !isAnimating) fileInput.click(); };
 uploadZone.addEventListener('click', triggerUpload);
 uploadOverlay.addEventListener('click', triggerUpload);
-canvas.addEventListener('click', () => { if (!srcImage) triggerUpload(); });
+canvas.addEventListener('click', () => { if (!srcImage && !isAnimating) triggerUpload(); });
 
 // ── File processing ───────────────────────────────────────────────────────────
 fileInput.addEventListener('change', async (e) => {
+    if (isAnimating) return;
     const file = e.target.files[0];
-    // FIX #6: reset so same file can be re-selected
     fileInput.value = '';
 
     if (!file || !modelsReady) return;
 
-    // FIX #13: file type + size validation
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    const allowedTypes =['image/png', 'image/jpeg', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
         showError('Unsupported Format', 'Please upload a JPG, PNG, or WEBP image.');
         return;
@@ -1127,6 +1197,13 @@ fileInput.addEventListener('change', async (e) => {
     uploadZone.classList.add('hidden');
 
     try {
+        const origUrl = URL.createObjectURL(file);
+        const origImg = new Image();
+        origImg.src = origUrl;
+        await origImg.decode();
+        URL.revokeObjectURL(origUrl);
+        appOrigImg = origImg;
+
         // Step 1: Remove Background
         step1.classList.add('active');
         await setLoaderText('Separating subject from background…');
@@ -1134,7 +1211,6 @@ fileInput.addEventListener('change', async (e) => {
         const bgBlob = await removeBackground(file, { model: 'isnet_fp16', output: { format: 'image/png' } });
 
         await setLoaderText('Refining edges…');
-        // FIX #5: revoke object URL after use
         const blobUrl = URL.createObjectURL(bgBlob);
         const img = new Image();
         img.src = blobUrl;
@@ -1155,6 +1231,24 @@ fileInput.addEventListener('change', async (e) => {
         const c1    = document.createElement('canvas'); c1.width = pW; c1.height = pH;
         const ctx1  = c1.getContext('2d');
         ctx1.drawImage(img, 0, 0, pW, pH);
+        appC1 = c1;
+
+        const pixels1 = ctx1.getImageData(0,0,pW,pH).data;
+        let c1BottomY = -1, c1BottomLeftX = -1, c1BottomRightX = -1;
+        for (let y = pH - 1; y >= 0; y--) {
+            for (let x = 0; x < pW; x++) { 
+                if (pixels1[(y * pW + x) * 4 + 3] > 20) {
+                    if (c1BottomY === -1) {
+                      c1BottomY = y;
+                      c1BottomLeftX = x;
+                    }
+                    c1BottomRightX = x;
+                }
+            }
+            if (c1BottomY !== -1) {
+              break;
+            }
+        }
 
         const res1 = faceLandmarker.detect(c1);
         if (!res1.faceLandmarks?.length)
@@ -1167,15 +1261,17 @@ fileInput.addEventListener('change', async (e) => {
         const eyeL1 = eye1.x < eye2.x ? eye1 : eye2;
         const eyeR1 = eye1.x < eye2.x ? eye2 : eye1;
         const angle  = Math.atan2((eyeR1.y - eyeL1.y) * pH, (eyeR1.x - eyeL1.x) * pW);
-        // FIX #16: store as number
         imgRotationDeg = -angle * (180 / Math.PI);
+        appAngle = angle;
+        appPw = pW;
+        appPh = pH;
 
         const D   = Math.ceil(Math.hypot(pW, pH));
+        appD = D;
+
         const c2  = document.createElement('canvas'); c2.width = D; c2.height = D;
         const ctx2 = c2.getContext('2d', { willReadFrequently: true });
         ctx2.translate(D / 2, D / 2); ctx2.rotate(-angle); ctx2.drawImage(c1, -pW / 2, -pH / 2);
-
-        // srcBottomY is derived from the rotated pixel scan below.
 
         await setLoaderText('Verifying face after rotation…');
 
@@ -1184,14 +1280,12 @@ fileInput.addEventListener('change', async (e) => {
         ctx3.fillStyle = '#fff'; ctx3.fillRect(0, 0, D, D); ctx3.drawImage(c2, 0, 0);
 
         const res2 = faceLandmarker.detect(c3);
-        // FIX #3: null guard on second detection
         if (!res2.faceLandmarks?.length)
             throw new Error('Face re-detection failed after rotation. Try a photo with a less extreme tilt.');
         const lm2 = res2.faceLandmarks[0];
 
         const pixels2 = ctx2.getImageData(0, 0, D, D).data;
         let hairTop = -1;
-        srcBottomY = 0;
 
         srcOuterLMap = new Int32Array(D).fill(D);
         srcOuterRMap = new Int32Array(D).fill(0);
@@ -1200,24 +1294,24 @@ fileInput.addEventListener('change', async (e) => {
             for (let x = 0; x < D; x++) {
                 if (pixels2[(y * D + x) * 4 + 3] > 20) {
                     if (hairTop === -1) hairTop = y;
-                    srcBottomY = y; // last row with a visible pixel = true bottom
                     if (x < srcOuterLMap[y]) srcOuterLMap[y] = x;
                     if (x > srcOuterRMap[y]) srcOuterRMap[y] = x;
                 }
             }
         }
 
-        await setLoaderText('Measuring head width…');
+
+        function mapToC2(x, y) { return (x - pW/2) * Math.sin(-angle) + (y - pH/2) * Math.cos(-angle) + D/2; }
+        srcBottomY = Math.min(mapToC2(c1BottomLeftX !== -1 ? c1BottomLeftX : 0, c1BottomY !== -1 ? c1BottomY : pH), mapToC2(c1BottomRightX !== -1 ? c1BottomRightX : pW, c1BottomY !== -1 ? c1BottomY : pH));
+
+        await setLoaderText('Parsing facial features…');
         let headLeft = D, headRight = 0;
 
         if (faceParser && !faceParseFallback) {
             const rotatedBlobUrl = c2.toDataURL('image/png');
             const parseResult = await faceParser(rotatedBlobUrl);
-            const e1   = parseResult.find(r => r.label === 'left_ear'  || r.label === 'l_ear');
-            const e2   = parseResult.find(r => r.label === 'right_ear' || r.label === 'r_ear');
             const skin = parseResult.find(r => r.label === 'skin');
 
-            // FIX #7: getMaskExtremes now correctly applies both scaleW and scaleH
             function getMaskExtremes(maskDataObj) {
                 if (!maskDataObj) return { minX: D, maxX: 0 };
                 const w      = maskDataObj.mask.width;
@@ -1238,15 +1332,11 @@ fileInput.addEventListener('change', async (e) => {
                 return { minX, maxX };
             }
 
-            const e1Ex = getMaskExtremes(e1);
-            const e2Ex = getMaskExtremes(e2);
-            if (e1Ex.minX !== D || e2Ex.minX !== D) {
-                headLeft  = Math.min(e1Ex.minX, e2Ex.minX);
-                headRight = Math.max(e1Ex.maxX, e2Ex.maxX);
-            } else {
-                const skinEx = getMaskExtremes(skin);
-                headLeft  = skinEx.minX; headRight = skinEx.maxX;
-            }
+
+            const skinEx = getMaskExtremes(skin);
+
+            headLeft  = skinEx.minX;
+            headRight = skinEx.maxX;
         }
 
         if (headLeft === D || headRight === 0 || faceParseFallback) {
@@ -1266,7 +1356,7 @@ fileInput.addEventListener('change', async (e) => {
             }
             const baseHue = validSamples > 0 ? noseHueSum / validSamples : 0;
             function isSkin(r, g, b) {
-                const [h, s] = rgbToHsl(r, g, b);
+                const[h, s] = rgbToHsl(r, g, b);
                 let hueDiff = Math.abs(h - baseHue);
                 if (hueDiff > 180) hueDiff = 360 - hueDiff;
                 return hueDiff < 30 && s > 10;
@@ -1303,45 +1393,61 @@ fileInput.addEventListener('change', async (e) => {
         srcNoseX   = lm2[1].x * D;
         srcHeadLX  = headLeft; srcHeadRX = headRight;
 
-        headSlider.disabled = false;
-        btnUp.disabled = false; btnDown.disabled = false;
-        btnLeft.disabled = false; btnRight.disabled = false;
-        dlDigitalBtn.disabled = false; dlPrintBtn.disabled = false;
-
         dpadWrapper.classList.add('has-image');
         uploadZone.classList.add('hidden');
 
-        // FIX #21: don't reset nudge on initial load — only reset slider value
         headSlider.value = 59; headPct = 59;
         headVal.textContent = '59%';
         nudgeX = 0; nudgeY = 0;
+
+        // Intro Animation Sequence
+        isAnimating = true;
+        setControlsEnabled(false);
+        guideOverlay.innerHTML = '';
+        procLoader.classList.remove('show');
+        
+        await new Promise(r => setTimeout(r, 400));
+        await playIntroAnimation(appOrigImg, appC1, c2, appAngle, appPw, appPh, appD);
+        
+        isAnimating = false;
+        setControlsEnabled(true);
+
         drawPassport();
 
-        // FIX #9: procLoader fades out via opacity transition
-        setTimeout(() => procLoader.classList.remove('show'), 500);
-
     } catch (err) {
+        isAnimating = false;
+        setControlsEnabled(true);
         procLoader.classList.remove('show');
         uploadZone.classList.remove('hidden');
-        // FIX #20: use inline error banner, not alert()
         showError('Processing Error', err.message);
     }
 });
 
-// ── Slider — FIX #21: preserve nudge on slider change ────────────────────────
+// ── Slider ────────────────────────
 headSlider.addEventListener('input', (e) => {
+    if (isAnimating) return;
     headPct = parseFloat(e.target.value);
     headVal.textContent = headPct.toFixed(1) + '%';
     nudgeX = 0; nudgeY = 0;
     drawPassport();
 });
 
-// ── Reset button ──────────────────────────────────────────────────────────────
-resetOverlay.addEventListener('click', () => {
-    if (!srcImage) return;
+// ── Reset button (Replay Animation) ───────────────────────────────────────────
+resetOverlay.addEventListener('click', async () => {
+    if (!srcImage || isAnimating) return;
+    
     headSlider.value = 59; headPct = 59;
     headVal.textContent = '59%';
     nudgeX = 0; nudgeY = 0;
+    
+    isAnimating = true;
+    setControlsEnabled(false);
+    guideOverlay.innerHTML = '';
+    
+    await playIntroAnimation(appOrigImg, appC1, srcImage, appAngle, appPw, appPh, appD);
+    
+    isAnimating = false;
+    setControlsEnabled(true);
     drawPassport();
 });
 
@@ -1354,6 +1460,7 @@ function applyNudge(dx, dy) {
 function setupNudge(btn, dx, dy) {
     let nInterval = null, initialTimeout = null;
     const start = (e) => {
+        if (isAnimating) return;
         e.preventDefault(); applyNudge(dx, dy);
         initialTimeout = setTimeout(() => {
             nInterval = setInterval(() => applyNudge(dx, dy), 35);
@@ -1373,14 +1480,13 @@ setupNudge(btnRight, 1,  0);
 // ── Canvas drag ───────────────────────────────────────────────────────────────
 let isDragging = false, lastX, lastY;
 canvas.addEventListener('pointerdown', e => {
-    if (!srcImage) return;
+    if (!srcImage || isAnimating) return;
     isDragging = true; lastX = e.clientX; lastY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
     canvas.classList.add('active-drag');
 });
 canvas.addEventListener('pointermove', e => {
     if (!isDragging) return;
-    // FIX #8: use canvas.width / canvas.height instead of hardcoded 600
     nudgeX += (e.clientX - lastX) * (canvas.width  / canvas.clientWidth);
     nudgeY += (e.clientY - lastY) * (canvas.height / canvas.clientHeight);
     lastX = e.clientX; lastY = e.clientY;
@@ -1427,39 +1533,30 @@ dlPrintBtn.addEventListener('click', () => {
         printCtx.beginPath(); printCtx.moveTo(x1, y1); printCtx.lineTo(x2, y2); printCtx.stroke();
     }
 
-    // FIX #10: Complete, symmetric cut guides for both photos
     const gap = 5;
     const img1Y = 150, img2Y = 1050;
     const leftX = 300, rightX = 900;
-    const img1Bot = img1Y + C;   // 750
-    const img2Bot = img2Y + C;   // 1650
-    const midY    = (img1Bot + img2Y) / 2; // 900 — midpoint between photos
+    const img1Bot = img1Y + C;
+    const img2Bot = img2Y + C;
+    const midY    = (img1Bot + img2Y) / 2;
 
-    // ── Photo 1 top edge ──
     drawCutGuide(0, img1Y, leftX - gap, img1Y);
     drawCutGuide(rightX + gap, img1Y, 1200, img1Y);
-    // Photo 1 top vertical ticks
     drawCutGuide(leftX,  0, leftX,  img1Y - gap);
     drawCutGuide(rightX, 0, rightX, img1Y - gap);
 
-    // ── Photo 1 bottom edge ──
     drawCutGuide(0, img1Bot, leftX - gap, img1Bot);
     drawCutGuide(rightX + gap, img1Bot, 1200, img1Bot);
-    // Between-photos vertical ticks (down from photo 1 bottom)
     drawCutGuide(leftX,  img1Bot + gap, leftX,  midY);
     drawCutGuide(rightX, img1Bot + gap, rightX, midY);
 
-    // ── Photo 2 top edge ──
     drawCutGuide(0, img2Y, leftX - gap, img2Y);
     drawCutGuide(rightX + gap, img2Y, 1200, img2Y);
-    // Between-photos vertical ticks (up from photo 2 top)
     drawCutGuide(leftX,  midY, leftX,  img2Y - gap);
     drawCutGuide(rightX, midY, rightX, img2Y - gap);
 
-    // ── Photo 2 bottom edge ──
     drawCutGuide(0, img2Bot, leftX - gap, img2Bot);
     drawCutGuide(rightX + gap, img2Bot, 1200, img2Bot);
-    // Bottom vertical ticks
     drawCutGuide(leftX,  img2Bot + gap, leftX,  1800);
     drawCutGuide(rightX, img2Bot + gap, rightX, 1800);
 
@@ -1469,7 +1566,6 @@ dlPrintBtn.addEventListener('click', () => {
 // ── Initial render ────────────────────────────────────────────────────────────
 drawPassport();
 
-// ── Service Worker registration (FIX #17: inline here, after module setup) ───
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {});
